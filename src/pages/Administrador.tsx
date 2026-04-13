@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Building2, UserPlus, Plus, Eye, EyeOff } from "lucide-react";
+import { Building2, UserPlus, Plus, Eye, EyeOff, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Organization {
@@ -18,6 +18,7 @@ interface Organization {
 
 interface Profile {
   id: string;
+  user_id: string;
   full_name: string;
   email: string;
   organization_id: string | null;
@@ -118,6 +119,21 @@ export default function Administrador() {
       toast.success("Usuário criado com sucesso!");
       setNewUser({ email: "", password: "", full_name: "", organization_id: "", role: "user" });
       setUserDialogOpen(false);
+      fetchProfiles();
+    }
+  }
+
+  async function handleDeleteUser(profile: Profile) {
+    if (!confirm(`Tem certeza que deseja excluir o usuário "${profile.full_name}"?`)) return;
+    setLoading(true);
+    const { data, error } = await supabase.functions.invoke("delete-user", {
+      body: { user_id: profile.user_id },
+    });
+    setLoading(false);
+    if (error || data?.error) {
+      toast.error("Erro ao excluir usuário: " + (data?.error || error?.message));
+    } else {
+      toast.success("Usuário excluído com sucesso!");
       fetchProfiles();
     }
   }
@@ -296,12 +312,13 @@ export default function Administrador() {
                 <TableHead>Email</TableHead>
                 <TableHead>Organização</TableHead>
                 <TableHead className="w-[180px]">Criado em</TableHead>
+                <TableHead className="w-[80px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {profiles.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     Nenhum usuário cadastrado.
                   </TableCell>
                 </TableRow>
@@ -315,6 +332,17 @@ export default function Administrador() {
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {new Date(profile.created_at).toLocaleDateString("pt-BR")}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteUser(profile)}
+                        disabled={loading}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
