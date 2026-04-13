@@ -1,6 +1,7 @@
-import { Map, ListChecks, Video, ChevronDown, Shield } from "lucide-react";
+import { Map, ListChecks, Video, ChevronDown, Shield, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import dantiaLogo from "@/assets/dantia-logo.svg";
 
 import {
@@ -13,6 +14,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
@@ -20,6 +22,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const projectItems = [
   { title: "Roadmap", url: "/projeto/roadmap", icon: Map },
@@ -31,6 +38,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const { signOut, user } = useAuth();
   const isProjectActive = projectItems.some((i) => location.pathname.startsWith(i.url));
 
   return (
@@ -95,6 +103,22 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="border-t border-sidebar-border p-3">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={signOut}
+              className="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sidebar-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-sm"
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
+              {!collapsed && <span>Sair</span>}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>Sair da conta</p>
+          </TooltipContent>
+        </Tooltip>
+      </SidebarFooter>
     </Sidebar>
   );
 }
