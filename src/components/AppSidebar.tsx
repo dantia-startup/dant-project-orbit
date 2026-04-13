@@ -1,4 +1,4 @@
-import { Map, ListChecks, Video, ChevronDown, Shield, LogOut } from "lucide-react";
+import { Map, ListChecks, Video, ChevronDown, Shield, LogOut, Settings } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -97,6 +97,19 @@ export function AppSidebar() {
                     >
                       <Shield className="h-4 w-4 shrink-0" />
                       {!collapsed && <span>Administrador</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/gestao-roadmap"
+                      end
+                      className="flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                    >
+                      <Settings className="h-4 w-4 shrink-0" />
+                      {!collapsed && <span>Gestão do Roadmap</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
