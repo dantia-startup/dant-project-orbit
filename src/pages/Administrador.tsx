@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Building2, UserPlus, Plus, Eye, EyeOff, Trash2 } from "lucide-react";
@@ -66,6 +67,7 @@ export default function Administrador() {
     role: "user" as "admin" | "user",
   });
   const [loading, setLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Profile | null>(null);
 
   useEffect(() => {
     fetchOrganizations();
@@ -123,13 +125,14 @@ export default function Administrador() {
     }
   }
 
-  async function handleDeleteUser(profile: Profile) {
-    if (!confirm(`Tem certeza que deseja excluir o usuário "${profile.full_name}"?`)) return;
+  async function handleDeleteUser() {
+    if (!deleteTarget) return;
     setLoading(true);
     const { data, error } = await supabase.functions.invoke("delete-user", {
-      body: { user_id: profile.user_id },
+      body: { user_id: deleteTarget.user_id },
     });
     setLoading(false);
+    setDeleteTarget(null);
     if (error || data?.error) {
       toast.error("Erro ao excluir usuário: " + (data?.error || error?.message));
     } else {
@@ -338,7 +341,7 @@ export default function Administrador() {
                         variant="ghost"
                         size="icon"
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDeleteUser(profile)}
+                        onClick={() => setDeleteTarget(profile)}
                         disabled={loading}
                       >
                         <Trash2 className="h-4 w-4" />
