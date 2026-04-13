@@ -212,10 +212,11 @@ export default function Administrador() {
                     onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                   />
                 </div>
-                <PasswordField
-                  value={newUser.password}
-                  onChange={(v) => setNewUser({ ...newUser, password: v })}
-                />
+                <div className="space-y-2">
+                  <PasswordField
+                    value={newUser.password}
+                    onChange={(v) => setNewUser({ ...newUser, password: v })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Organização</Label>
