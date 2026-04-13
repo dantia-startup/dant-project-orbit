@@ -1,8 +1,17 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
+
+const pageTitles: Record<string, string> = {
+  "/projeto/roadmap": "Roadmap",
+  "/projeto/atividades": "Atividades",
+  "/projeto/reunioes": "Reuniões",
+};
 
 export function AppLayout() {
+  const location = useLocation();
+  const pageTitle = pageTitles[location.pathname] || "Projeto";
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -11,8 +20,7 @@ export function AppLayout() {
           <header className="h-14 flex items-center border-b bg-card px-4 shrink-0">
             <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
             <div className="ml-4">
-              <span className="text-sm font-medium text-foreground">Dante Decision Engine™</span>
-              <span className="text-xs text-muted-foreground ml-3">Cesgranio</span>
+              <span className="text-sm font-medium text-foreground">{pageTitle}</span>
             </div>
           </header>
           <main className="flex-1 overflow-auto p-6">
