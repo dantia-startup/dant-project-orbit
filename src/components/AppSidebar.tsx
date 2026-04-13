@@ -38,7 +38,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { signOut, user } = useAuth();
+  const { signOut, user, isAdmin } = useAuth();
   const isProjectActive = projectItems.some((i) => location.pathname.startsWith(i.url));
 
   return (
