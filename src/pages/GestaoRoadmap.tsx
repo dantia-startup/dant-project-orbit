@@ -192,12 +192,14 @@ export default function GestaoRoadmap() {
           .update({ status: "done" })
           .eq("project_id", editingMonth.project_id)
           .lt("month_number", editingMonth.month_number)
-          .neq("status", "done"),
+          .neq("status", "done")
+          .then(),
         supabase.from("project_months")
           .update({ status: "future" })
           .eq("project_id", editingMonth.project_id)
           .gt("month_number", editingMonth.month_number)
-          .neq("status", "future"),
+          .neq("status", "future")
+          .then(),
       ];
     }
 
