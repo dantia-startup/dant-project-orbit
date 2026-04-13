@@ -15,7 +15,7 @@ import NotFound from "@/pages/NotFound";
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
-  const { session, loading } = useAuth();
+  const { session, loading, isAdmin } = useAuth();
 
   if (loading) {
     return (
@@ -34,7 +34,7 @@ function ProtectedRoutes() {
         <Route path="/projeto/roadmap" element={<Roadmap />} />
         <Route path="/projeto/atividades" element={<Atividades />} />
         <Route path="/projeto/reunioes" element={<Reunioes />} />
-        <Route path="/administrador" element={<Administrador />} />
+        <Route path="/administrador" element={isAdmin ? <Administrador /> : <Navigate to="/projeto/roadmap" replace />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
