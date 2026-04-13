@@ -176,7 +176,7 @@ export default function Roadmap() {
 
             {phase.description && <p className="text-sm italic text-muted-foreground pl-12">{phase.description}</p>}
 
-            <div className="grid gap-4 pl-12" style={{ gridTemplateColumns: `repeat(${phaseMonths.length}, minmax(0, 1fr))` }}>
+            <div className="grid gap-4 pl-12" style={{ gridTemplateColumns: `repeat(${Math.min(phaseMonths.length, 3)}, minmax(0, 1fr))` }}>
               {phaseMonths.map(month => (
                 <div
                   key={month.month_number}
@@ -289,7 +289,7 @@ function MockRoadmap() {
               {isActive && !isComplete && <Clock className="h-5 w-5 text-info ml-auto" />}
             </div>
             <p className="text-sm italic text-muted-foreground pl-12">{phase.description}</p>
-            <div className="grid gap-4 pl-12" style={{ gridTemplateColumns: `repeat(${phase.milestones.length}, minmax(0, 1fr))` }}>
+            <div className="grid gap-4 pl-12" style={{ gridTemplateColumns: `repeat(${Math.min(phase.milestones.length, 3)}, minmax(0, 1fr))` }}>
               {phase.milestones.map(milestone => {
                 const status = getMonthStatus(milestone.month);
                 return (
