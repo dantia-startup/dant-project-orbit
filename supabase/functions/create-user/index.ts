@@ -11,40 +11,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "No authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    // Verify the calling user is an admin
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
-
-    const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const { data: { user: caller } } = await callerClient.auth.getUser();
-    if (!caller) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Check admin role
-    const { data: roleData } = await callerClient.rpc("has_role", {
-      _user_id: caller.id,
-      _role: "admin",
-    });
-
-    if (!roleData) {
-      return new Response(JSON.stringify({ error: "Forbidden: admin only" }), {
-        status: 403,
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return new Response(JSON.stringify({ error: "Server configuration error" }), {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -65,9 +37,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create auth user with service role
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Create auth user
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
       email,
       password,
