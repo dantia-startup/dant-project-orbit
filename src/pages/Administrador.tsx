@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Building2, UserPlus, Plus, Eye, EyeOff, Trash2 } from "lucide-react";
+import { Building2, UserPlus, Plus, Eye, EyeOff, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 interface Organization {
@@ -26,16 +26,20 @@ interface Profile {
   created_at: string;
 }
 
-function PasswordField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+interface UserRole {
+  user_id: string;
+  role: "admin" | "user";
+}
+
+function PasswordField({ value, onChange, label, placeholder }: { value: string; onChange: (v: string) => void; label?: string; placeholder?: string }) {
   const [show, setShow] = useState(false);
   return (
     <>
-      <Label htmlFor="user-password">Senha *</Label>
+      <Label>{label || "Senha *"}</Label>
       <div className="relative">
         <Input
-          id="user-password"
           type={show ? "text" : "password"}
-          placeholder="Mínimo 6 caracteres"
+          placeholder={placeholder || "Mínimo 6 caracteres"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
@@ -56,6 +60,7 @@ function PasswordField({ value, onChange }: { value: string; onChange: (v: strin
 export default function Administrador() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [orgDialogOpen, setOrgDialogOpen] = useState(false);
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [orgName, setOrgName] = useState("");
@@ -69,9 +74,21 @@ export default function Administrador() {
   const [loading, setLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Profile | null>(null);
 
+  // Edit user state
+  const [editTarget, setEditTarget] = useState<Profile | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    full_name: "",
+    email: "",
+    organization_id: "",
+    role: "user" as "admin" | "user",
+    password: "",
+  });
+
   useEffect(() => {
     fetchOrganizations();
     fetchProfiles();
+    fetchUserRoles();
   }, []);
 
   async function fetchOrganizations() {
@@ -82,6 +99,15 @@ export default function Administrador() {
   async function fetchProfiles() {
     const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
     if (data) setProfiles(data as Profile[]);
+  }
+
+  async function fetchUserRoles() {
+    const { data } = await supabase.from("user_roles").select("user_id, role");
+    if (data) setUserRoles(data as UserRole[]);
+  }
+
+  function getUserRole(userId: string): "admin" | "user" {
+    return userRoles.find((r) => r.user_id === userId)?.role || "user";
   }
 
   async function handleCreateOrg() {
@@ -122,6 +148,7 @@ export default function Administrador() {
       setNewUser({ email: "", password: "", full_name: "", organization_id: "", role: "user" });
       setUserDialogOpen(false);
       fetchProfiles();
+      fetchUserRoles();
     }
   }
 
@@ -138,6 +165,55 @@ export default function Administrador() {
     } else {
       toast.success("Usuário excluído com sucesso!");
       fetchProfiles();
+      fetchUserRoles();
+    }
+  }
+
+  function openEditDialog(profile: Profile) {
+    setEditTarget(profile);
+    setEditForm({
+      full_name: profile.full_name,
+      email: profile.email,
+      organization_id: profile.organization_id || "",
+      role: getUserRole(profile.user_id),
+      password: "",
+    });
+    setEditDialogOpen(true);
+  }
+
+  async function handleUpdateUser() {
+    if (!editTarget) return;
+    if (!editForm.full_name.trim() || !editForm.email.trim()) {
+      toast.error("Nome e e-mail são obrigatórios.");
+      return;
+    }
+    if (editForm.password && editForm.password.length < 6) {
+      toast.error("A senha deve ter no mínimo 6 caracteres.");
+      return;
+    }
+    setLoading(true);
+    const body: Record<string, unknown> = {
+      user_id: editTarget.user_id,
+      full_name: editForm.full_name.trim(),
+      email: editForm.email.trim(),
+      organization_id: editForm.organization_id || null,
+      role: editForm.role,
+    };
+    if (editForm.password) {
+      body.password = editForm.password;
+    }
+
+    const { data, error } = await supabase.functions.invoke("update-user", { body });
+    setLoading(false);
+
+    if (error || data?.error) {
+      toast.error("Erro ao atualizar usuário: " + (data?.error || error?.message));
+    } else {
+      toast.success("Usuário atualizado com sucesso!");
+      setEditDialogOpen(false);
+      setEditTarget(null);
+      fetchProfiles();
+      fetchUserRoles();
     }
   }
 
@@ -314,14 +390,15 @@ export default function Administrador() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Organização</TableHead>
+                <TableHead>Role</TableHead>
                 <TableHead className="w-[180px]">Criado em</TableHead>
-                <TableHead className="w-[80px]"></TableHead>
+                <TableHead className="w-[100px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {profiles.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     Nenhum usuário cadastrado.
                   </TableCell>
                 </TableRow>
@@ -333,19 +410,35 @@ export default function Administrador() {
                     <TableCell>
                       <Badge variant="secondary">{getOrgName(profile.organization_id)}</Badge>
                     </TableCell>
+                    <TableCell>
+                      <Badge variant={getUserRole(profile.user_id) === "admin" ? "default" : "outline"}>
+                        {getUserRole(profile.user_id) === "admin" ? "Admin" : "Usuário"}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {new Date(profile.created_at).toLocaleDateString("pt-BR")}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setDeleteTarget(profile)}
-                        disabled={loading}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => openEditDialog(profile)}
+                          disabled={loading}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeleteTarget(profile)}
+                          disabled={loading}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -355,6 +448,7 @@ export default function Administrador() {
         </div>
       </section>
 
+      {/* Delete Confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -375,6 +469,84 @@ export default function Administrador() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={(open) => { if (!open) { setEditDialogOpen(false); setEditTarget(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>Altere os dados do usuário. Deixe o campo de senha vazio para manter a senha atual.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nome Completo *</Label>
+              <Input
+                placeholder="Nome do usuário"
+                value={editForm.full_name}
+                onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email *</Label>
+              <Input
+                type="email"
+                placeholder="email@exemplo.com"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <PasswordField
+                value={editForm.password}
+                onChange={(v) => setEditForm({ ...editForm, password: v })}
+                label="Nova Senha (opcional)"
+                placeholder="Deixe vazio para não alterar"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Organização</Label>
+              <Select
+                value={editForm.organization_id}
+                onValueChange={(v) => setEditForm({ ...editForm, organization_id: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma organização" />
+                </SelectTrigger>
+                <SelectContent>
+                  {organizations.map((org) => (
+                    <SelectItem key={org.id} value={org.id}>
+                      {org.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Role *</Label>
+              <Select
+                value={editForm.role}
+                onValueChange={(v) => setEditForm({ ...editForm, role: v as "admin" | "user" })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="user">Usuário</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditDialogOpen(false); setEditTarget(null); }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateUser} disabled={loading}>
+              {loading ? "Salvando..." : "Salvar Alterações"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
