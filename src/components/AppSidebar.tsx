@@ -80,28 +80,30 @@ export function AppSidebar() {
             </CollapsibleContent>
           </Collapsible>
         </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-muted-foreground text-xs uppercase tracking-wider font-semibold px-3 py-2">
-            {!collapsed && <span>Sistema</span>}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/administrador"
-                    end
-                    className="flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-                    activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                  >
-                    <Shield className="h-4 w-4 shrink-0" />
-                    {!collapsed && <span>Administrador</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sidebar-muted-foreground text-xs uppercase tracking-wider font-semibold px-3 py-2">
+              {!collapsed && <span>Sistema</span>}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/administrador"
+                      end
+                      className="flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                    >
+                      <Shield className="h-4 w-4 shrink-0" />
+                      {!collapsed && <span>Administrador</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border p-3">
         <Tooltip>
