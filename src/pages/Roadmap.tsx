@@ -100,12 +100,6 @@ export default function Roadmap() {
         highlights: (m.highlights as string[]) || [],
       }));
 
-      if (monthsData.length === 0 || monthsData.every(m => !m.title && m.items.length === 0)) {
-        setUseMock(true);
-        setLoading(false);
-        return;
-      }
-
       setMonths(monthsData);
       setPhases((pRes.data || []).map(ph => ({
         name: ph.name,
@@ -197,23 +191,29 @@ export default function Roadmap() {
                       <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
                     )}
                     <h3 className="font-semibold text-sm text-foreground">
-                      Mês {month.month_number} — {month.title}
+                      Mês {month.month_number} — {month.title || "A definir"}
                     </h3>
                   </div>
-                  <ul className="space-y-1.5">
-                    {month.items.map((item, i) => (
-                      <li key={i} className="text-xs text-muted-foreground flex gap-2">
-                        <span className="text-muted-foreground/50 mt-1">•</span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                    {month.highlights.map((h, i) => (
-                      <li key={`h${i}`} className="text-xs font-medium text-success flex gap-2">
-                        <span className="mt-1">●</span>
-                        <span>{h}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {(!month.title && month.items.length === 0) ? (
+                    <p className="text-xs text-muted-foreground/60 italic">
+                      Detalhamento será definido em momento posterior do projeto.
+                    </p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {month.items.map((item, i) => (
+                        <li key={i} className="text-xs text-muted-foreground flex gap-2">
+                          <span className="text-muted-foreground/50 mt-1">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                      {month.highlights.map((h, i) => (
+                        <li key={`h${i}`} className="text-xs font-medium text-success flex gap-2">
+                          <span className="mt-1">●</span>
+                          <span>{h}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               ))}
             </div>
