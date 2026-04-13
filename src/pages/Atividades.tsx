@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Calendar, User, AlertTriangle, ChevronRight, Plus, GripVertical, ChevronLeft } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Calendar, User, AlertTriangle, ChevronRight, Plus, GripVertical, Trash2, Pencil, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 type TaskPriority = "alta" | "média" | "baixa";
@@ -50,16 +50,23 @@ const priorityStyles: Record<TaskPriority, string> = {
   baixa: "bg-muted text-muted-foreground border-border",
 };
 
+const statusLabels: Record<TaskStatus, string> = Object.fromEntries(
+  kanbanColumns.map((c) => [c.id, c.label])
+) as Record<TaskStatus, string>;
+
 export default function Atividades() {
   const { user, isAdmin } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [moveMenuTask, setMoveMenuTask] = useState<string | null>(null);
 
-  // Form state
+  // View dialog
+  const [viewTask, setViewTask] = useState<Task | null>(null);
+
+  // Create/Edit dialog
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [formTitle, setFormTitle] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formPriority, setFormPriority] = useState<TaskPriority>("média");
@@ -68,6 +75,10 @@ export default function Atividades() {
   const [formDueDate, setFormDueDate] = useState("");
   const [formStatus, setFormStatus] = useState<TaskStatus>("backlog");
   const [saving, setSaving] = useState(false);
+
+  // Delete confirmation
+  const [deleteConfirmTask, setDeleteConfirmTask] = useState<Task | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadTasks = useCallback(async () => {
     const { data: profile } = await supabase
@@ -135,6 +146,7 @@ export default function Atividades() {
   }
 
   function openEditDialog(task: Task) {
+    setViewTask(null);
     setEditingTask(task);
     setFormTitle(task.title);
     setFormDescription(task.description);
@@ -195,6 +207,21 @@ export default function Atividades() {
     loadTasks();
   }
 
+  async function handleDelete() {
+    if (!deleteConfirmTask) return;
+    setDeleting(true);
+    const { error } = await supabase.from("tasks").delete().eq("id", deleteConfirmTask.id);
+    if (error) {
+      toast.error("Erro ao excluir tarefa");
+    } else {
+      toast.success("Tarefa excluída");
+      if (viewTask?.id === deleteConfirmTask.id) setViewTask(null);
+    }
+    setDeleting(false);
+    setDeleteConfirmTask(null);
+    loadTasks();
+  }
+
   async function moveTask(taskId: string, newStatus: TaskStatus) {
     const { error } = await supabase.from("tasks").update({ status: newStatus }).eq("id", taskId);
     if (error) {
@@ -237,6 +264,7 @@ export default function Atividades() {
         )}
       </div>
 
+      {/* Kanban board */}
       <div className="flex gap-4 overflow-x-auto pb-4">
         {kanbanColumns.map((col) => {
           const colTasks = tasks.filter((t) => t.status === col.id);
@@ -254,7 +282,7 @@ export default function Atividades() {
                     <div
                       key={task.id}
                       className="bg-card rounded-lg border p-3.5 shadow-sm hover:shadow-md transition-shadow cursor-pointer group relative"
-                      onClick={() => isAdmin && openEditDialog(task)}
+                      onClick={() => setViewTask(task)}
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <h4 className="text-sm font-medium text-foreground leading-snug">{task.title}</h4>
@@ -271,7 +299,6 @@ export default function Atividades() {
                         )}
                       </div>
 
-                      {/* Move menu */}
                       {isAdmin && moveMenuTask === task.id && (
                         <div className="absolute right-2 top-10 z-10 bg-popover border rounded-md shadow-lg p-1 min-w-[180px]">
                           <p className="text-xs text-muted-foreground px-2 py-1 font-medium">Mover para:</p>
@@ -327,9 +354,7 @@ export default function Atividades() {
                   ))}
 
                   {colTasks.length === 0 && (
-                    <p className="text-xs text-muted-foreground/50 italic text-center py-4">
-                      Sem tarefas
-                    </p>
+                    <p className="text-xs text-muted-foreground/50 italic text-center py-4">Sem tarefas</p>
                   )}
 
                   {isAdmin && (
@@ -348,11 +373,91 @@ export default function Atividades() {
         })}
       </div>
 
+      {/* View Task Dialog */}
+      <Dialog open={!!viewTask} onOpenChange={(open) => !open && setViewTask(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-lg">{viewTask?.title}</DialogTitle>
+            <DialogDescription className="sr-only">Detalhes da tarefa</DialogDescription>
+          </DialogHeader>
+          {viewTask && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${priorityStyles[viewTask.priority]}`}>
+                  {viewTask.priority === "alta" && <AlertTriangle className="h-3 w-3 mr-1" />}
+                  Prioridade: {viewTask.priority}
+                </span>
+                <Badge variant="outline" className="text-xs">{statusLabels[viewTask.status]}</Badge>
+              </div>
+
+              {viewTask.description ? (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Descrição</p>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{viewTask.description}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">Sem descrição</p>
+              )}
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {viewTask.assignee && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-0.5">Responsável</p>
+                    <p className="flex items-center gap-1.5"><User className="h-3.5 w-3.5" />{viewTask.assignee}</p>
+                  </div>
+                )}
+                {viewTask.due_date && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-0.5">Data de entrega</p>
+                    <p className="flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {new Date(viewTask.due_date).toLocaleDateString("pt-BR")}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {viewTask.tags.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Tags</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {viewTask.tags.map((tag) => (
+                      <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {isAdmin && (
+                <div className="flex gap-2 pt-2 border-t">
+                  <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openEditDialog(viewTask)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                    Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="gap-1.5"
+                    onClick={() => setDeleteConfirmTask(viewTask)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Excluir
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{editingTask ? "Editar Tarefa" : "Nova Tarefa"}</DialogTitle>
+            <DialogDescription className="sr-only">
+              {editingTask ? "Edite os campos da tarefa" : "Preencha os campos para criar uma tarefa"}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -361,7 +466,7 @@ export default function Atividades() {
             </div>
             <div>
               <label className="text-sm font-medium text-foreground">Descrição</label>
-              <Textarea value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="Descrição" rows={3} />
+              <Textarea value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="Descreva a tarefa..." rows={3} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -402,10 +507,42 @@ export default function Atividades() {
               <Input value={formTags} onChange={(e) => setFormTags(e.target.value)} placeholder="ex: backend, urgente" />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {editingTask && (
+              <Button
+                variant="destructive"
+                size="sm"
+                className="gap-1.5 mr-auto"
+                onClick={() => {
+                  setDialogOpen(false);
+                  setDeleteConfirmTask(editingTask);
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Excluir
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? "Salvando..." : editingTask ? "Salvar" : "Criar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmTask} onOpenChange={(open) => !open && setDeleteConfirmTask(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Excluir tarefa</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir <strong>"{deleteConfirmTask?.title}"</strong>? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmTask(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "Excluindo..." : "Excluir"}
             </Button>
           </DialogFooter>
         </DialogContent>
