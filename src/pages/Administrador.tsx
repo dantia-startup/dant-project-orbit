@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Building2, UserPlus, Plus } from "lucide-react";
+import { Building2, UserPlus, Plus, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 interface Organization {
@@ -212,15 +212,10 @@ export default function Administrador() {
                     onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="user-password">Senha *</Label>
-                  <Input
-                    id="user-password"
-                    type="password"
-                    placeholder="Mínimo 6 caracteres"
-                    value={newUser.password}
-                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                  />
+                <PasswordField
+                  value={newUser.password}
+                  onChange={(v) => setNewUser({ ...newUser, password: v })}
+                />
                 </div>
                 <div className="space-y-2">
                   <Label>Organização</Label>
