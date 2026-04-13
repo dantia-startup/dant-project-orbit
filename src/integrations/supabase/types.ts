@@ -103,6 +103,135 @@ export type Database = {
           },
         ]
       }
+      project_months: {
+        Row: {
+          created_at: string
+          highlights: Json
+          id: string
+          items: Json
+          label: string
+          month_number: number
+          project_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          highlights?: Json
+          id?: string
+          items?: Json
+          label: string
+          month_number: number
+          project_id: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          highlights?: Json
+          id?: string
+          items?: Json
+          label?: string
+          month_number?: number
+          project_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_months_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_phases: {
+        Row: {
+          color: string
+          created_at: string
+          description: string
+          end_month: number
+          id: string
+          name: string
+          phase_order: number
+          project_id: string
+          start_month: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string
+          end_month: number
+          id?: string
+          name: string
+          phase_order?: number
+          project_id: string
+          start_month: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string
+          end_month?: number
+          id?: string
+          name?: string
+          phase_order?: number
+          project_id?: string
+          start_month?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_phases_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          client_name: string
+          created_at: string
+          id: string
+          organization_id: string
+          total_months: number
+          updated_at: string
+        }
+        Insert: {
+          client_name: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          total_months?: number
+          updated_at?: string
+        }
+        Update: {
+          client_name?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          total_months?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
