@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Building2, UserPlus, Plus } from "lucide-react";
+import { Building2, UserPlus, Plus, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 interface Organization {
@@ -22,6 +22,33 @@ interface Profile {
   email: string;
   organization_id: string | null;
   created_at: string;
+}
+
+function PasswordField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [show, setShow] = useState(false);
+  return (
+    <>
+      <Label htmlFor="user-password">Senha *</Label>
+      <div className="relative">
+        <Input
+          id="user-password"
+          type={show ? "text" : "password"}
+          placeholder="Mínimo 6 caracteres"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="absolute right-0 top-0 h-10 w-10"
+          onClick={() => setShow(!show)}
+        >
+          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </Button>
+      </div>
+    </>
+  );
 }
 
 export default function Administrador() {
@@ -213,13 +240,9 @@ export default function Administrador() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="user-password">Senha *</Label>
-                  <Input
-                    id="user-password"
-                    type="password"
-                    placeholder="Mínimo 6 caracteres"
+                  <PasswordField
                     value={newUser.password}
-                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    onChange={(v) => setNewUser({ ...newUser, password: v })}
                   />
                 </div>
                 <div className="space-y-2">
