@@ -185,7 +185,7 @@ export default function GestaoRoadmap() {
     }
 
     // If setting to current, set all others to done/future
-    let extraUpdates: Promise<unknown>[] = [];
+    let extraUpdates: PromiseLike<unknown>[] = [];
     if (monthForm.status === "current") {
       extraUpdates = [
         supabase.from("project_months")
