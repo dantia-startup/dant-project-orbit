@@ -24,6 +24,33 @@ interface Profile {
   created_at: string;
 }
 
+function PasswordField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [show, setShow] = useState(false);
+  return (
+    <>
+      <Label htmlFor="user-password">Senha *</Label>
+      <div className="relative">
+        <Input
+          id="user-password"
+          type={show ? "text" : "password"}
+          placeholder="Mínimo 6 caracteres"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="absolute right-0 top-0 h-10 w-10"
+          onClick={() => setShow(!show)}
+        >
+          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </Button>
+      </div>
+    </>
+  );
+}
+
 export default function Administrador() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
