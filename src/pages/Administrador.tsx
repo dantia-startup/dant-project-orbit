@@ -123,6 +123,21 @@ export default function Administrador() {
     }
   }
 
+  async function handleDeleteUser(profile: Profile) {
+    if (!confirm(`Tem certeza que deseja excluir o usuário "${profile.full_name}"?`)) return;
+    setLoading(true);
+    const { data, error } = await supabase.functions.invoke("delete-user", {
+      body: { user_id: profile.user_id },
+    });
+    setLoading(false);
+    if (error || data?.error) {
+      toast.error("Erro ao excluir usuário: " + (data?.error || error?.message));
+    } else {
+      toast.success("Usuário excluído com sucesso!");
+      fetchProfiles();
+    }
+  }
+
   function getOrgName(orgId: string | null) {
     if (!orgId) return "—";
     return organizations.find((o) => o.id === orgId)?.name || "—";
@@ -297,12 +312,13 @@ export default function Administrador() {
                 <TableHead>Email</TableHead>
                 <TableHead>Organização</TableHead>
                 <TableHead className="w-[180px]">Criado em</TableHead>
+                <TableHead className="w-[80px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {profiles.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     Nenhum usuário cadastrado.
                   </TableCell>
                 </TableRow>
@@ -316,6 +332,17 @@ export default function Administrador() {
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {new Date(profile.created_at).toLocaleDateString("pt-BR")}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteUser(profile)}
+                        disabled={loading}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
