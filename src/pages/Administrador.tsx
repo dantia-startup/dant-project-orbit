@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Building2, UserPlus, Plus, Eye, EyeOff } from "lucide-react";
+import { Building2, UserPlus, Plus, Eye, EyeOff, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Organization {
@@ -18,6 +18,7 @@ interface Organization {
 
 interface Profile {
   id: string;
+  user_id: string;
   full_name: string;
   email: string;
   organization_id: string | null;
