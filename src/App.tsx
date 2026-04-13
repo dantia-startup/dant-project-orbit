@@ -9,6 +9,7 @@ import Roadmap from "@/pages/Roadmap";
 import Atividades from "@/pages/Atividades";
 import Reunioes from "@/pages/Reunioes";
 import Administrador from "@/pages/Administrador";
+import GestaoRoadmap from "@/pages/GestaoRoadmap";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
 
@@ -35,6 +36,7 @@ function ProtectedRoutes() {
         <Route path="/projeto/atividades" element={<Atividades />} />
         <Route path="/projeto/reunioes" element={<Reunioes />} />
         <Route path="/administrador" element={isAdmin ? <Administrador /> : <Navigate to="/projeto/roadmap" replace />} />
+        <Route path="/gestao-roadmap" element={isAdmin ? <GestaoRoadmap /> : <Navigate to="/projeto/roadmap" replace />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
