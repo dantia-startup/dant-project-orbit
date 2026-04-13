@@ -7,6 +7,7 @@ import { AppLayout } from "@/components/AppLayout";
 import Roadmap from "@/pages/Roadmap";
 import Atividades from "@/pages/Atividades";
 import Reunioes from "@/pages/Reunioes";
+import Administrador from "@/pages/Administrador";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
             <Route path="/projeto/roadmap" element={<Roadmap />} />
             <Route path="/projeto/atividades" element={<Atividades />} />
             <Route path="/projeto/reunioes" element={<Reunioes />} />
+            <Route path="/administrador" element={<Administrador />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

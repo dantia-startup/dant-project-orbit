@@ -6,6 +6,7 @@ const pageTitles: Record<string, string> = {
   "/projeto/roadmap": "Roadmap",
   "/projeto/atividades": "Atividades",
   "/projeto/reunioes": "Reuniões",
+  "/administrador": "Administrador",
 };
 
 export function AppLayout() {
