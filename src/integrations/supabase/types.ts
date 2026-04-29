@@ -191,6 +191,59 @@ export type Database = {
         }
         Relationships: []
       }
+      meetings: {
+        Row: {
+          action_items: Json
+          created_at: string
+          duration: string
+          id: string
+          meeting_date: string
+          participants: Json
+          project_id: string
+          summary: string
+          tags: Json
+          title: string
+          transcription: string
+          updated_at: string
+        }
+        Insert: {
+          action_items?: Json
+          created_at?: string
+          duration?: string
+          id?: string
+          meeting_date: string
+          participants?: Json
+          project_id: string
+          summary?: string
+          tags?: Json
+          title: string
+          transcription?: string
+          updated_at?: string
+        }
+        Update: {
+          action_items?: Json
+          created_at?: string
+          duration?: string
+          id?: string
+          meeting_date?: string
+          participants?: Json
+          project_id?: string
+          summary?: string
+          tags?: Json
+          title?: string
+          transcription?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string
