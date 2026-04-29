@@ -14,11 +14,156 @@ export type Database = {
   }
   public: {
     Tables: {
+      clientes: {
+        Row: {
+          cidade: string | null
+          id: number
+          moeda_principal: string | null
+          nome: string
+          segmento: string | null
+        }
+        Insert: {
+          cidade?: string | null
+          id?: number
+          moeda_principal?: string | null
+          nome: string
+          segmento?: string | null
+        }
+        Update: {
+          cidade?: string | null
+          id?: number
+          moeda_principal?: string | null
+          nome?: string
+          segmento?: string | null
+        }
+        Relationships: []
+      }
+      cotacoes: {
+        Row: {
+          capturado_em: string | null
+          data_cotacao: string
+          id: number
+          moeda_base: string
+          moeda_destino: string
+          taxa: number
+        }
+        Insert: {
+          capturado_em?: string | null
+          data_cotacao: string
+          id?: number
+          moeda_base: string
+          moeda_destino: string
+          taxa: number
+        }
+        Update: {
+          capturado_em?: string | null
+          data_cotacao?: string
+          id?: number
+          moeda_base?: string
+          moeda_destino?: string
+          taxa?: number
+        }
+        Relationships: []
+      }
+      email_send_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          message_id: string | null
+          metadata: Json | null
+          recipient_email: string
+          status: string
+          template_name: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+          recipient_email: string
+          status: string
+          template_name: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+          recipient_email?: string
+          status?: string
+          template_name?: string
+        }
+        Relationships: []
+      }
+      email_unsubscribe_tokens: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
+      fretes_convertidos: {
+        Row: {
+          calculado_em: string | null
+          cliente_nome: string | null
+          data_cotacao: string | null
+          id: number
+          moeda_cliente: string | null
+          rota_codigo: string
+          taxa_aplicada: number | null
+          valor_frete_local: number | null
+          valor_frete_usd: number | null
+        }
+        Insert: {
+          calculado_em?: string | null
+          cliente_nome?: string | null
+          data_cotacao?: string | null
+          id?: number
+          moeda_cliente?: string | null
+          rota_codigo: string
+          taxa_aplicada?: number | null
+          valor_frete_local?: number | null
+          valor_frete_usd?: number | null
+        }
+        Update: {
+          calculado_em?: string | null
+          cliente_nome?: string | null
+          data_cotacao?: string | null
+          id?: number
+          moeda_cliente?: string | null
+          rota_codigo?: string
+          taxa_aplicada?: number | null
+          valor_frete_local?: number | null
+          valor_frete_usd?: number | null
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           answers: Json
           created_at: string
           email: string
+          faturamento: string | null
           id: string
           nome: string
           profile: string
@@ -28,6 +173,7 @@ export type Database = {
           answers: Json
           created_at?: string
           email: string
+          faturamento?: string | null
           id?: string
           nome: string
           profile: string
@@ -37,6 +183,7 @@ export type Database = {
           answers?: Json
           created_at?: string
           email?: string
+          faturamento?: string | null
           id?: string
           nome?: string
           profile?: string
@@ -232,6 +379,68 @@ export type Database = {
           },
         ]
       }
+      rotas: {
+        Row: {
+          cliente_id: number | null
+          codigo: string
+          destino: string
+          distancia_km: number | null
+          id: number
+          origem: string
+          valor_frete_usd: number | null
+        }
+        Insert: {
+          cliente_id?: number | null
+          codigo: string
+          destino: string
+          distancia_km?: number | null
+          id?: number
+          origem: string
+          valor_frete_usd?: number | null
+        }
+        Update: {
+          cliente_id?: number | null
+          codigo?: string
+          destino?: string
+          distancia_km?: number | null
+          id?: number
+          origem?: string
+          valor_frete_usd?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppressed_emails: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          metadata: Json | null
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          metadata?: Json | null
+          reason: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          metadata?: Json | null
+          reason?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           assignee: string
@@ -285,6 +494,33 @@ export type Database = {
           },
         ]
       }
+      user_profiles: {
+        Row: {
+          created_at: string
+          full_name: string
+          id: string
+          revenue_range: Database["public"]["Enums"]["revenue_range"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          full_name: string
+          id?: string
+          revenue_range: Database["public"]["Enums"]["revenue_range"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string
+          id?: string
+          revenue_range?: Database["public"]["Enums"]["revenue_range"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -321,6 +557,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      revenue_range: "pre_revenue" | "0_50k" | "50k_100k" | "100k_plus"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -449,6 +686,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      revenue_range: ["pre_revenue", "0_50k", "50k_100k", "100k_plus"],
     },
   },
 } as const
