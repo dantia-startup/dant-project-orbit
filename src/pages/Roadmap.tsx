@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { roadmapPhases as mockPhases, currentMonth as mockCurrentMonth } from "@/data/mockData";
-import { CheckCircle2, Clock, Circle } from "lucide-react";
+import { ProjectSwitcher } from "@/components/ProjectSwitcher";
+import { useProjectSelection } from "@/hooks/useProjectSelection";
+import { CheckCircle2, Clock, Circle, FolderGit2 } from "lucide-react";
 
 interface MonthData {
   month_number: number;
@@ -25,6 +26,9 @@ interface PhaseData {
 interface ProjectData {
   client_name: string;
   total_months: number;
+  repository_name: string | null;
+  repository_url: string | null;
+  local_path: string | null;
 }
 
 function getMonthColor(month: number, months: MonthData[]) {
@@ -49,8 +53,12 @@ const phaseBadgeColors = {
   amber: "bg-warning/10 text-warning",
 };
 
+function isCesgranrioProject(projectName?: string) {
+  return projectName?.toLowerCase().includes("cesgran") || false;
+}
+
 export default function Roadmap() {
-  const { user } = useAuth();
+  const { projects, selectedProject, selectedProjectId, setSelectedProjectId, loadingProjects } = useProjectSelection();
   const [project, setProject] = useState<ProjectData | null>(null);
   const [months, setMonths] = useState<MonthData[]>([]);
   const [phases, setPhases] = useState<PhaseData[]>([]);
@@ -59,36 +67,32 @@ export default function Roadmap() {
 
   useEffect(() => {
     async function load() {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("organization_id")
-        .eq("user_id", user?.id || "")
-        .maybeSingle();
-
-      if (!profile?.organization_id) {
+      if (loadingProjects) return;
+      if (!selectedProject) {
         setUseMock(true);
         setLoading(false);
         return;
       }
 
-      const { data: projects } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("organization_id", profile.organization_id)
-        .limit(1);
-
-      if (!projects || projects.length === 0) {
+      if (isCesgranrioProject(selectedProject.client_name)) {
         setUseMock(true);
         setLoading(false);
         return;
       }
 
-      const p = projects[0];
-      setProject({ client_name: p.client_name, total_months: p.total_months });
+      setLoading(true);
+      setUseMock(false);
+      setProject({
+        client_name: selectedProject.client_name,
+        total_months: selectedProject.total_months,
+        repository_name: selectedProject.repository_name,
+        repository_url: selectedProject.repository_url,
+        local_path: selectedProject.local_path,
+      });
 
       const [mRes, pRes] = await Promise.all([
-        supabase.from("project_months").select("*").eq("project_id", p.id).order("month_number"),
-        supabase.from("project_phases").select("*").eq("project_id", p.id).order("phase_order"),
+        supabase.from("project_months").select("*").eq("project_id", selectedProject.id).order("month_number"),
+        supabase.from("project_phases").select("*").eq("project_id", selectedProject.id).order("phase_order"),
       ]);
 
       const monthsData = (mRes.data || []).map(m => ({
@@ -113,7 +117,7 @@ export default function Roadmap() {
       setLoading(false);
     }
     load();
-  }, [user?.id]);
+  }, [loadingProjects, selectedProject]);
 
   if (loading) {
     return (
@@ -123,21 +127,50 @@ export default function Roadmap() {
     );
   }
 
-  // Fallback to mock data
-  if (useMock) return <MockRoadmap />;
+  // Cesgranrio stays immutable, but the project selector must remain available.
+  if (useMock) {
+    return (
+      <>
+        {projects.length > 0 && (
+          <div className="max-w-6xl mx-auto flex justify-end">
+            <ProjectSwitcher projects={projects} selectedProjectId={selectedProjectId} onChange={setSelectedProjectId} />
+          </div>
+        )}
+        <MockRoadmap />
+      </>
+    );
+  }
 
-  // Dynamic roadmap
-  const currentMonthNum = months.find(m => m.status === "current")?.month_number || 0;
+  const cesgranrioMode = isCesgranrioProject(project?.client_name);
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
+      <div className="flex justify-end">
+        <ProjectSwitcher projects={projects} selectedProjectId={selectedProjectId} onChange={setSelectedProjectId} />
+      </div>
       <div className="bg-gradient-to-r from-[hsl(228,55%,12%)] to-[hsl(225,95%,30%)] rounded-xl p-8 text-primary-foreground">
         <h1 className="text-2xl font-bold">
-          Roadmap <span className="text-accent">Dante Decision Engine</span>™
+          {cesgranrioMode ? (
+            <>Roadmap <span className="text-accent">Dante Decision Engine</span>™</>
+          ) : (
+            <>Roadmap <span className="text-accent">{project?.client_name}</span></>
+          )}
         </h1>
-        <p className="text-lg font-medium mt-1 text-primary-foreground/80">{project?.total_months} Meses de Implementação</p>
-        <div className="flex gap-8 mt-4 text-sm text-primary-foreground/70">
-          <div><span className="font-semibold text-primary-foreground/90">Cliente:</span> {project?.client_name}</div>
+        <p className="text-lg font-medium mt-1 text-primary-foreground/80">
+          {cesgranrioMode ? `${project?.total_months} Meses de Implementação` : `${project?.total_months} semanas de execução em paralelo`}
+        </p>
+        <div className="flex gap-8 mt-4 text-sm text-primary-foreground/70 flex-wrap">
+          <div>
+            <span className="font-semibold text-primary-foreground/90">{cesgranrioMode ? "Cliente:" : "Projeto:"}</span>{" "}
+            {cesgranrioMode ? "Cesgranio — Centro de Seleção e Promoção dos Docentes" : project?.client_name}
+          </div>
+          {cesgranrioMode && <div><span className="font-semibold text-primary-foreground/90">Data:</span> Março 2025 · Confidencial</div>}
+          {!cesgranrioMode && project?.repository_name && (
+            <div className="flex items-center gap-1.5">
+              <FolderGit2 className="h-3.5 w-3.5" />
+              <span className="font-semibold text-primary-foreground/90">Repo:</span> {project.repository_name}
+            </div>
+          )}
         </div>
       </div>
 
@@ -148,7 +181,7 @@ export default function Roadmap() {
             key={m.month_number}
             className={`flex-1 rounded-md py-2 px-1 text-center transition-all ${getMonthColor(m.month_number, months)} ${m.status === "future" ? "opacity-40" : ""} ${m.status === "current" ? "ring-2 ring-ring ring-offset-2 ring-offset-background" : ""}`}
           >
-            <div className="text-xs font-bold">M{m.month_number}</div>
+            <div className="text-xs font-bold">{cesgranrioMode ? "M" : "S"}{m.month_number}</div>
             <div className="text-[10px] leading-tight mt-0.5">{m.label}</div>
           </div>
         ))}
@@ -168,7 +201,9 @@ export default function Roadmap() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-foreground">{phase.name}</h2>
-                <p className="text-sm text-muted-foreground">Meses {phase.start_month}–{phase.end_month}</p>
+                <p className="text-sm text-muted-foreground">
+                  {cesgranrioMode ? "Meses" : "Semanas"} {phase.start_month}{cesgranrioMode ? "–" : "-"}{phase.end_month}
+                </p>
               </div>
               {isComplete && <CheckCircle2 className="h-5 w-5 text-success ml-auto" />}
               {isActive && !isComplete && <Clock className="h-5 w-5 text-info ml-auto" />}
@@ -191,24 +226,24 @@ export default function Roadmap() {
                       <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
                     )}
                     <h3 className="font-semibold text-sm text-foreground">
-                      Mês {month.month_number} — {month.title || "A definir"}
+                      {cesgranrioMode ? "Mês" : "Semana"} {month.month_number}{cesgranrioMode ? " — " : " - "}{month.title || "A definir"}
                     </h3>
                   </div>
                   {(!month.title && month.items.length === 0) ? (
                     <p className="text-xs text-muted-foreground/60 italic">
-                      Detalhamento será definido em momento posterior do projeto.
+                      {cesgranrioMode ? "Detalhamento será definido em momento posterior do projeto." : "Esta parte ainda será detalhada quando chegar a semana certa."}
                     </p>
                   ) : (
                     <ul className="space-y-1.5">
                       {month.items.map((item, i) => (
                         <li key={i} className="text-xs text-muted-foreground flex gap-2">
-                          <span className="text-muted-foreground/50 mt-1">•</span>
+                          <span className="text-muted-foreground/50 mt-1">-</span>
                           <span>{item}</span>
                         </li>
                       ))}
                       {month.highlights.map((h, i) => (
                         <li key={`h${i}`} className="text-xs font-medium text-success flex gap-2">
-                          <span className="mt-1">●</span>
+                          <span className="mt-1">-</span>
                           <span>{h}</span>
                         </li>
                       ))}

@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { ProjectSwitcher } from "@/components/ProjectSwitcher";
+import { useProjectSelection } from "@/hooks/useProjectSelection";
 import { Calendar, User, AlertTriangle, ChevronRight, Plus, GripVertical, Trash2, Pencil, Eye } from "lucide-react";
 import { toast } from "sonner";
 
@@ -55,9 +57,9 @@ const statusLabels: Record<TaskStatus, string> = Object.fromEntries(
 ) as Record<TaskStatus, string>;
 
 export default function Atividades() {
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
+  const { projects, selectedProject, selectedProjectId, setSelectedProjectId, loadingProjects } = useProjectSelection();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [projectId, setProjectId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [moveMenuTask, setMoveMenuTask] = useState<string | null>(null);
 
@@ -81,35 +83,19 @@ export default function Atividades() {
   const [deleting, setDeleting] = useState(false);
 
   const loadTasks = useCallback(async () => {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("organization_id")
-      .eq("user_id", user?.id || "")
-      .maybeSingle();
-
-    if (!profile?.organization_id) {
+    if (loadingProjects) return;
+    if (!selectedProject) {
+      setTasks([]);
       setLoading(false);
       return;
     }
 
-    const { data: projects } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("organization_id", profile.organization_id)
-      .limit(1);
-
-    if (!projects || projects.length === 0) {
-      setLoading(false);
-      return;
-    }
-
-    const pid = projects[0].id;
-    setProjectId(pid);
+    setLoading(true);
 
     const { data } = await supabase
       .from("tasks")
       .select("*")
-      .eq("project_id", pid)
+      .eq("project_id", selectedProject.id)
       .order("position");
 
     setTasks(
@@ -127,7 +113,7 @@ export default function Atividades() {
       }))
     );
     setLoading(false);
-  }, [user?.id]);
+  }, [loadingProjects, selectedProject]);
 
   useEffect(() => {
     loadTasks();
@@ -163,7 +149,7 @@ export default function Atividades() {
       toast.error("Título é obrigatório");
       return;
     }
-    if (!projectId) return;
+    if (!selectedProjectId) return;
 
     setSaving(true);
     const tags = formTags
@@ -172,7 +158,7 @@ export default function Atividades() {
       .filter(Boolean);
 
     const payload = {
-      project_id: projectId,
+      project_id: selectedProjectId,
       title: formTitle.trim(),
       description: formDescription.trim(),
       status: formStatus,
@@ -240,7 +226,7 @@ export default function Atividades() {
     );
   }
 
-  if (!projectId) {
+  if (!selectedProjectId) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
         <p>Nenhum projeto encontrado para esta organização.</p>
@@ -254,30 +240,33 @@ export default function Atividades() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-foreground">Atividades</h1>
-          <p className="text-sm text-muted-foreground">Kanban do projeto</p>
+          <p className="text-sm text-muted-foreground">Kanban do projeto {selectedProject?.client_name}</p>
         </div>
-        {isAdmin && (
-          <Button onClick={() => openCreateDialog()} size="sm" className="gap-1.5">
-            <Plus className="h-4 w-4" />
-            Nova Tarefa
-          </Button>
-        )}
+        <div className="flex items-center gap-3">
+          <ProjectSwitcher projects={projects} selectedProjectId={selectedProjectId} onChange={setSelectedProjectId} />
+          {isAdmin && (
+            <Button onClick={() => openCreateDialog()} size="sm" className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              Nova Tarefa
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Kanban board */}
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex h-[calc(100vh-190px)] min-h-[520px] gap-4 overflow-x-auto overflow-y-hidden pb-4">
         {kanbanColumns.map((col) => {
           const colTasks = tasks.filter((t) => t.status === col.id);
           return (
-            <div key={col.id} className="flex-shrink-0 w-72">
-              <div className={`rounded-lg border border-t-4 ${columnAccent[col.id]} bg-muted/30 p-3 min-h-[calc(100vh-220px)]`}>
+            <div key={col.id} className="flex h-full w-72 flex-shrink-0">
+              <div className={`flex h-full w-full flex-col rounded-lg border border-t-4 ${columnAccent[col.id]} bg-muted/30 p-3`}>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold text-foreground">{col.label}</h3>
                   <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5 font-medium">
                     {colTasks.length}
                   </span>
                 </div>
-                <div className="space-y-2.5">
+                <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-1">
                   {colTasks.map((task) => (
                     <div
                       key={task.id}

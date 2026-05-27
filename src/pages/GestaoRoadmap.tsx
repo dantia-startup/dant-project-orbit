@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,8 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
-import { Map, Plus, Pencil, Trash2, CheckCircle2, Clock, Circle, GripVertical, Palette } from "lucide-react";
+import { ProjectSwitcher } from "@/components/ProjectSwitcher";
+import { useProjectSelection } from "@/hooks/useProjectSelection";
+import { dantiaRepositoryProjects } from "@/data/dantiaProjects";
+import { getProjectRoadmapTemplate, type RoadmapTemplate } from "@/data/projectRoadmapTemplates";
+import { Map as MapIcon, Plus, Pencil, Trash2, CheckCircle2, Clock, Circle, FolderGit2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Project {
@@ -20,6 +22,10 @@ interface Project {
   organization_id: string;
   client_name: string;
   total_months: number;
+  project_key: string | null;
+  repository_name: string | null;
+  repository_url: string | null;
+  local_path: string | null;
 }
 
 interface ProjectMonth {
@@ -50,8 +56,109 @@ const colorOptions = [
   { value: "amber", label: "Âmbar", class: "bg-warning" },
 ];
 
+function getTemplateForProject(projectKeyOrName: string) {
+  return getProjectRoadmapTemplate(projectKeyOrName);
+}
+
+function getTemplateWeekStatus(template: RoadmapTemplate, week: number) {
+  if (week <= template.completedThrough) return "done" as const;
+  if (week === template.currentWeek) return "current" as const;
+  return "future" as const;
+}
+
+function buildTemplateMonthInserts(projectId: string, totalMonths: number, template: RoadmapTemplate) {
+  return Array.from({ length: totalMonths }, (_, i) => {
+    const monthNumber = i + 1;
+    const month = template.months.find((item) => item.month === monthNumber);
+
+    return {
+      project_id: projectId,
+      month_number: monthNumber,
+      label: month?.label || `Semana ${monthNumber}`,
+      status: getTemplateWeekStatus(template, monthNumber),
+      title: month?.title || "",
+      items: month?.items || [],
+      highlights: month?.highlights || [],
+    };
+  });
+}
+
+function buildBlankMonthInserts(projectId: string, totalMonths: number) {
+  return Array.from({ length: totalMonths }, (_, i) => ({
+    project_id: projectId,
+    month_number: i + 1,
+    label: `Mês ${i + 1}`,
+    status: "future" as const,
+    title: "",
+    items: [],
+    highlights: [],
+  }));
+}
+
+function buildTemplatePhaseInserts(projectId: string, template: RoadmapTemplate) {
+  return template.phases.map((phase, index) => ({
+    project_id: projectId,
+    name: phase.name,
+    description: phase.description,
+    color: phase.color,
+    phase_order: index + 1,
+    start_month: phase.startMonth,
+    end_month: phase.endMonth,
+  }));
+}
+
+function getExecutiveTaskStatus(month: number, template: RoadmapTemplate) {
+  if (month <= template.completedThrough) return "concluida";
+  if (month === template.currentWeek) return "em_andamento";
+  if (month === template.currentWeek + 1) return "priorizada";
+  return "backlog";
+}
+
+function buildTemplateTaskInserts(projectId: string, template: RoadmapTemplate) {
+  let position = 0;
+
+  return template.phases.flatMap((phase) =>
+    template.months
+      .filter((month) => month.month >= phase.startMonth && month.month <= phase.endMonth)
+      .flatMap((month) => {
+      const baseTags = ["Cronograma Executivo", `S${month.month}`, phase.name];
+      const itemTasks = month.items.map((item) => ({
+        project_id: projectId,
+        title: `S${month.month} - ${item}`,
+        description: `${month.title}\n${phase.description}`,
+        status: getExecutiveTaskStatus(month.month, template),
+        priority: month.month <= 2 ? "alta" : "baixa",
+        assignee: "DantIA",
+        tags: baseTags,
+        position: position++,
+      }));
+
+      const highlightTasks = (month.highlights || []).map((highlight) => ({
+        project_id: projectId,
+        title: `S${month.month} - ${highlight}`,
+        description: `${month.title}\nAtividade executiva destacada no roadmap.`,
+        status: getExecutiveTaskStatus(month.month, template),
+        priority: "alta",
+        assignee: "DantIA",
+        tags: [...baseTags, "Destaque"],
+        position: position++,
+      }));
+
+      return [...itemTasks, ...highlightTasks];
+    })
+  );
+}
+
 export default function GestaoRoadmap() {
-  const { user } = useAuth();
+  const {
+    organizationId,
+    projects,
+    selectedProject,
+    selectedProjectId,
+    setSelectedProjectId,
+    loadingProjects,
+    reloadProjects,
+  } = useProjectSelection();
   const [project, setProject] = useState<Project | null>(null);
   const [months, setMonths] = useState<ProjectMonth[]>([]);
   const [phases, setPhases] = useState<ProjectPhase[]>([]);
@@ -61,6 +168,10 @@ export default function GestaoRoadmap() {
   // Create project form
   const [createOpen, setCreateOpen] = useState(false);
   const [clientName, setClientName] = useState("");
+  const [projectKey, setProjectKey] = useState("");
+  const [repositoryName, setRepositoryName] = useState("");
+  const [repositoryUrl, setRepositoryUrl] = useState("");
+  const [localPath, setLocalPath] = useState("");
   const [totalMonths, setTotalMonths] = useState(12);
 
   // Edit month
@@ -74,31 +185,20 @@ export default function GestaoRoadmap() {
   const [phaseForm, setPhaseForm] = useState({ name: "", description: "", color: "blue" as string, start_month: 1, end_month: 1, phase_order: 1 });
 
   const fetchProject = useCallback(async () => {
-    // Get user's org
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("organization_id")
-      .eq("user_id", user?.id || "")
-      .maybeSingle();
-
-    if (!profile?.organization_id) {
+    if (loadingProjects) return;
+    if (!selectedProject) {
+      setProject(null);
+      setMonths([]);
+      setPhases([]);
       setLoading(false);
       return;
     }
 
-    const { data: projects } = await supabase
-      .from("projects")
-      .select("*")
-      .eq("organization_id", profile.organization_id)
-      .limit(1);
-
-    if (projects && projects.length > 0) {
-      const p = projects[0] as Project;
-      setProject(p);
-      await fetchMonthsAndPhases(p.id);
-    }
+    setLoading(true);
+    setProject(selectedProject as Project);
+    await fetchMonthsAndPhases(selectedProject.id);
     setLoading(false);
-  }, [user?.id]);
+  }, [loadingProjects, selectedProject]);
 
   async function fetchMonthsAndPhases(projectId: string) {
     const [monthsRes, phasesRes] = await Promise.all([
@@ -119,22 +219,26 @@ export default function GestaoRoadmap() {
       return;
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("organization_id")
-      .eq("user_id", user?.id || "")
-      .maybeSingle();
-
-    if (!profile?.organization_id) {
+    if (!organizationId) {
       toast.error("Usuário não vinculado a uma organização.");
       return;
     }
 
     setSaving(true);
+    const template = getTemplateForProject(projectKey.trim() || clientName.trim());
+    const projectTotalWeeks = template ? template.months.length : totalMonths;
 
     const { data: newProject, error } = await supabase
       .from("projects")
-      .insert({ client_name: clientName.trim(), total_months: totalMonths, organization_id: profile.organization_id })
+      .insert({
+        client_name: clientName.trim(),
+        total_months: projectTotalWeeks,
+        organization_id: organizationId,
+        project_key: projectKey.trim() || null,
+        repository_name: repositoryName.trim() || null,
+        repository_url: repositoryUrl.trim() || null,
+        local_path: localPath.trim() || null,
+      })
       .select()
       .single();
 
@@ -144,25 +248,171 @@ export default function GestaoRoadmap() {
       return;
     }
 
-    // Create months
-    const monthInserts = Array.from({ length: totalMonths }, (_, i) => ({
-      project_id: newProject.id,
-      month_number: i + 1,
-      label: `Mês ${i + 1}`,
-      status: "future" as const,
-      title: "",
-      items: [],
-      highlights: [],
-    }));
-
-    await supabase.from("project_months").insert(monthInserts);
-
+    // Seed only DantIA-owned templates; external references stay immutable.
+    await seedExecutiveRoadmap(newProject.id, projectTotalWeeks, projectKey.trim() || clientName.trim());
     setProject(newProject as Project);
     await fetchMonthsAndPhases(newProject.id);
+    await reloadProjects();
+    setSelectedProjectId(newProject.id);
     setCreateOpen(false);
     setClientName("");
+    setProjectKey("");
+    setRepositoryName("");
+    setRepositoryUrl("");
+    setLocalPath("");
     setSaving(false);
     toast.success("Projeto criado com sucesso!");
+  }
+
+  async function seedExecutiveRoadmap(projectId: string, totalMonths: number, projectKeyOrName: string) {
+    const template = getTemplateForProject(projectKeyOrName);
+    if (!template) {
+      await supabase.from("project_months").insert(buildBlankMonthInserts(projectId, totalMonths));
+      return;
+    }
+
+    await Promise.all([
+      supabase.from("project_months").insert(buildTemplateMonthInserts(projectId, totalMonths, template)),
+      supabase.from("project_phases").insert(buildTemplatePhaseInserts(projectId, template)),
+      supabase.from("tasks").insert(buildTemplateTaskInserts(projectId, template)),
+    ]);
+  }
+
+  async function applyExecutiveTasks(projectId: string, template: RoadmapTemplate) {
+    await supabase
+      .from("tasks")
+      .delete()
+      .eq("project_id", projectId)
+      .eq("assignee", "DantIA")
+      .contains("tags", ["Cronograma Executivo"]);
+
+    await supabase
+      .from("tasks")
+      .delete()
+      .eq("project_id", projectId)
+      .eq("assignee", "DantIA")
+      .like("title", "M% - %");
+
+    await supabase.from("tasks").insert(buildTemplateTaskInserts(projectId, template));
+  }
+
+  async function applyExecutiveTemplate(projectId: string, totalMonths: number, projectKeyOrName: string) {
+    const template = getTemplateForProject(projectKeyOrName);
+    if (!template) return;
+
+    const templateDuration = template.months.length;
+    const [monthsRes, phasesRes] = await Promise.all([
+      supabase.from("project_months").select("*").eq("project_id", projectId).order("month_number"),
+      supabase.from("project_phases").select("*").eq("project_id", projectId).order("phase_order"),
+    ]);
+
+    await supabase.from("projects").update({ total_months: templateDuration }).eq("id", projectId);
+    await supabase.from("project_months").delete().eq("project_id", projectId).gt("month_number", templateDuration);
+    await supabase.from("project_phases").delete().eq("project_id", projectId).gt("phase_order", template.phases.length);
+
+    const templateMonths = buildTemplateMonthInserts(projectId, templateDuration, template);
+
+    if (!monthsRes.data || monthsRes.data.length === 0) {
+      await supabase.from("project_months").insert(templateMonths);
+    } else {
+      const updates = monthsRes.data
+        .map((month) => {
+          const templateMonth = templateMonths.find((item) => item.month_number === month.month_number);
+          if (!templateMonth) return null;
+
+          return supabase
+            .from("project_months")
+            .update({
+              label: templateMonth.label,
+              status: templateMonth.status,
+              title: templateMonth.title,
+              items: templateMonth.items,
+              highlights: templateMonth.highlights,
+            })
+            .eq("id", month.id);
+        })
+        .filter(Boolean);
+      const existingMonthNumbers = new Set(monthsRes.data.map((month) => month.month_number));
+      const missingMonths = templateMonths.filter((month) => !existingMonthNumbers.has(month.month_number));
+
+      await Promise.all([
+        ...updates,
+        missingMonths.length > 0 ? supabase.from("project_months").insert(missingMonths) : Promise.resolve(),
+      ]);
+    }
+
+    const templatePhases = buildTemplatePhaseInserts(projectId, template);
+    const phaseOps = templatePhases.map((phase) => {
+      const existing = phasesRes.data?.find((item) => item.phase_order === phase.phase_order);
+      if (existing) {
+        return supabase.from("project_phases").update({
+          name: phase.name,
+          description: phase.description,
+          color: phase.color,
+          start_month: phase.start_month,
+          end_month: phase.end_month,
+        }).eq("id", existing.id);
+      }
+
+      return supabase.from("project_phases").insert(phase);
+    });
+
+    await Promise.all(phaseOps);
+    await applyExecutiveTasks(projectId, template);
+  }
+
+  async function handleImportRepositoryProjects() {
+    if (!organizationId) {
+      toast.error("Usuario nao vinculado a uma organizacao.");
+      return;
+    }
+
+    setSaving(true);
+
+    const existingKeys = new Set(projects.map((p) => (p.project_key || p.client_name).toLowerCase()));
+    const missing = dantiaRepositoryProjects.filter((repo) =>
+      !existingKeys.has(repo.project_key) && !existingKeys.has(repo.client_name.toLowerCase())
+    );
+
+    if (missing.length === 0) {
+      await Promise.all(
+        projects
+          .filter((project) => dantiaRepositoryProjects.some((repo) => repo.project_key === (project.project_key || project.client_name).toLowerCase()))
+          .map((project) => applyExecutiveTemplate(project.id, project.total_months, project.project_key || project.client_name))
+      );
+      if (selectedProject) await fetchMonthsAndPhases(selectedProject.id);
+      toast.info("Projetos ja cadastrados; estrutura executiva conferida.");
+      setSaving(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("projects")
+      .insert(
+        missing.map((repo) => ({
+          client_name: repo.client_name,
+          organization_id: organizationId,
+          total_months: getTemplateForProject(repo.project_key)?.months.length || 12,
+        }))
+      )
+      .select();
+
+    if (error || !data) {
+      toast.error("Erro ao importar repositorios: " + (error?.message || ""));
+      setSaving(false);
+      return;
+    }
+
+    await Promise.all([
+      ...data.map((created) => seedExecutiveRoadmap(created.id, created.total_months, created.client_name)),
+      ...projects
+        .filter((project) => dantiaRepositoryProjects.some((repo) => repo.project_key === (project.project_key || project.client_name).toLowerCase()))
+        .map((project) => applyExecutiveTemplate(project.id, project.total_months, project.project_key || project.client_name)),
+    ]);
+    await reloadProjects();
+    setSelectedProjectId(data[0].id);
+    setSaving(false);
+    toast.success(`${data.length} repositorio(s) importado(s).`);
   }
 
   function openEditMonth(month: ProjectMonth) {
@@ -180,7 +430,7 @@ export default function GestaoRoadmap() {
   async function handleSaveMonth() {
     if (!editingMonth) return;
     if (monthForm.label.length > 15) {
-      toast.error("A descrição do mês deve ter no máximo 15 caracteres.");
+      toast.error("A descrição da semana deve ter no máximo 15 caracteres.");
       return;
     }
 
@@ -218,7 +468,7 @@ export default function GestaoRoadmap() {
     if (error) {
       toast.error("Erro ao salvar: " + error.message);
     } else {
-      toast.success("Mês atualizado!");
+      toast.success("Semana atualizada!");
       setEditMonthOpen(false);
       await fetchMonthsAndPhases(editingMonth.project_id);
     }
@@ -301,13 +551,18 @@ export default function GestaoRoadmap() {
     return (
       <div className="max-w-xl mx-auto py-20 text-center space-y-6">
         <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-          <Map className="h-8 w-8 text-primary" />
+          <MapIcon className="h-8 w-8 text-primary" />
         </div>
         <h1 className="text-2xl font-bold text-foreground">Nenhum projeto cadastrado</h1>
         <p className="text-muted-foreground">Crie um projeto para começar a configurar o Roadmap da organização.</p>
-        <Button size="lg" onClick={() => setCreateOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" /> Criar Projeto
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 justify-center">
+          <Button size="lg" onClick={handleImportRepositoryProjects} disabled={saving || !organizationId} className="gap-2">
+            <FolderGit2 className="h-4 w-4" /> Importar Repositórios
+          </Button>
+          <Button size="lg" variant="outline" onClick={() => setCreateOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" /> Criar Projeto
+          </Button>
+        </div>
 
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogContent>
@@ -320,8 +575,26 @@ export default function GestaoRoadmap() {
                 <Label>Nome do Cliente *</Label>
                 <Input placeholder="Ex: Cesgranio" value={clientName} onChange={e => setClientName(e.target.value)} />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Chave do Projeto</Label>
+                  <Input placeholder="ex: dantia-landing" value={projectKey} onChange={e => setProjectKey(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Repositório</Label>
+                  <Input placeholder="ex: dantia-landing" value={repositoryName} onChange={e => setRepositoryName(e.target.value)} />
+                </div>
+              </div>
               <div className="space-y-2">
-                <Label>Duração do Projeto (meses) *</Label>
+                <Label>URL do Repositório</Label>
+                <Input placeholder="https://github.com/..." value={repositoryUrl} onChange={e => setRepositoryUrl(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Caminho Local</Label>
+                <Input placeholder="C:\Users\Rafael\Projetos\..." value={localPath} onChange={e => setLocalPath(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Duração do Projeto (semanas) *</Label>
                 <Input type="number" min={1} max={60} value={totalMonths} onChange={e => setTotalMonths(Number(e.target.value))} />
               </div>
             </div>
@@ -343,32 +616,89 @@ export default function GestaoRoadmap() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Map className="h-6 w-6 text-primary" />
+            <MapIcon className="h-6 w-6 text-primary" />
             Gestão do Roadmap
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Cliente: <strong>{project.client_name}</strong> · {project.total_months} meses
+            Projeto: <strong>{project.client_name}</strong> · {project.total_months} semanas
           </p>
+          {project.repository_name && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Repo: <strong>{project.repository_name}</strong>{project.local_path ? ` · ${project.local_path}` : ""}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <ProjectSwitcher projects={projects} selectedProjectId={selectedProjectId} onChange={setSelectedProjectId} />
+          <Button variant="outline" size="sm" onClick={handleImportRepositoryProjects} disabled={saving || !organizationId} className="gap-1.5">
+            <FolderGit2 className="h-4 w-4" /> Importar
+          </Button>
+          <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
+            <Plus className="h-4 w-4" /> Novo
+          </Button>
         </div>
       </div>
 
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Criar Projeto</DialogTitle>
+            <DialogDescription>Informe os dados iniciais do projeto.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nome do Cliente *</Label>
+              <Input placeholder="Ex: dantia-landing" value={clientName} onChange={e => setClientName(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Chave do Projeto</Label>
+                <Input placeholder="ex: dantia-landing" value={projectKey} onChange={e => setProjectKey(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Repositório</Label>
+                <Input placeholder="ex: dantia-landing" value={repositoryName} onChange={e => setRepositoryName(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>URL do Repositório</Label>
+              <Input placeholder="https://github.com/..." value={repositoryUrl} onChange={e => setRepositoryUrl(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Caminho Local</Label>
+              <Input placeholder="C:\Users\Rafael\Projetos\..." value={localPath} onChange={e => setLocalPath(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Duração do Projeto (semanas) *</Label>
+              <Input type="number" min={1} max={60} value={totalMonths} onChange={e => setTotalMonths(Number(e.target.value))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateProject} disabled={saving || !clientName.trim()}>
+              {saving ? "Criando..." : "Criar Projeto"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Tabs defaultValue="months" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="months">Meses</TabsTrigger>
+          <TabsTrigger value="months">Semanas</TabsTrigger>
           <TabsTrigger value="phases">Fases</TabsTrigger>
         </TabsList>
 
         {/* MONTHS TAB */}
         <TabsContent value="months" className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Configure a descrição, o status e os tópicos de cada mês do roadmap. A descrição aparece na barra de timeline (máx. 15 caracteres).
+            Configure a descrição, o status e os tópicos de cada semana do cronograma. A descrição aparece na barra de timeline (máx. 15 caracteres).
           </p>
 
           <div className="rounded-lg border bg-card">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[60px]">Mês</TableHead>
+                  <TableHead className="w-[60px]">Semana</TableHead>
                   <TableHead className="w-[130px]">Label</TableHead>
                   <TableHead>Título</TableHead>
                   <TableHead className="w-[100px]">Status</TableHead>
@@ -379,7 +709,7 @@ export default function GestaoRoadmap() {
               <TableBody>
                 {months.map(m => (
                   <TableRow key={m.id} className={m.status === "future" ? "opacity-50" : ""}>
-                    <TableCell className="font-bold text-center">M{m.month_number}</TableCell>
+                    <TableCell className="font-bold text-center">S{m.month_number}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="font-mono text-xs">{m.label}</Badge>
                     </TableCell>
@@ -407,7 +737,7 @@ export default function GestaoRoadmap() {
         <TabsContent value="phases" className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Defina as fases do projeto. Cada fase agrupa um intervalo de meses.
+              Defina as fases do projeto. Cada fase agrupa um intervalo de semanas.
             </p>
             <Button size="sm" className="gap-1.5" onClick={() => openPhaseDialog()}>
               <Plus className="h-4 w-4" /> Nova Fase
@@ -430,7 +760,7 @@ export default function GestaoRoadmap() {
                         <div className={`w-3 h-3 rounded-full ${phase.color === "green" ? "bg-success" : phase.color === "amber" ? "bg-warning" : "bg-primary"}`} />
                         <CardTitle className="text-base">{phase.name}</CardTitle>
                         <Badge variant="outline" className="text-xs">
-                          Meses {phase.start_month}–{phase.end_month}
+                          Semanas {phase.start_month}–{phase.end_month}
                         </Badge>
                       </div>
                       <div className="flex gap-1">
@@ -455,8 +785,8 @@ export default function GestaoRoadmap() {
       <Dialog open={editMonthOpen} onOpenChange={setEditMonthOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Editar Mês {editingMonth?.month_number}</DialogTitle>
-            <DialogDescription>Configure as informações deste mês do roadmap.</DialogDescription>
+            <DialogTitle>Editar Semana {editingMonth?.month_number}</DialogTitle>
+            <DialogDescription>Configure as informações desta semana do cronograma.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -470,7 +800,7 @@ export default function GestaoRoadmap() {
               <p className="text-xs text-muted-foreground">{monthForm.label.length}/15 caracteres</p>
             </div>
             <div className="space-y-2">
-              <Label>Título do Mês</Label>
+              <Label>Título da Semana</Label>
               <Input
                 placeholder="Ex: Kick-off + Primeiros Resultados"
                 value={monthForm.title}
@@ -484,13 +814,13 @@ export default function GestaoRoadmap() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="done">✅ Concluído</SelectItem>
-                  <SelectItem value="current">🕐 Atual</SelectItem>
-                  <SelectItem value="future">⏳ Futuro</SelectItem>
+                  <SelectItem value="done">Concluído</SelectItem>
+                  <SelectItem value="current">Atual</SelectItem>
+                  <SelectItem value="future">Futuro</SelectItem>
                 </SelectContent>
               </Select>
               {monthForm.status === "current" && (
-                <p className="text-xs text-info">Definir como atual marcará os meses anteriores como concluídos e os posteriores como futuros.</p>
+                <p className="text-xs text-info">Definir como atual marcará as semanas anteriores como concluídas e as posteriores como futuras.</p>
               )}
             </div>
             <div className="space-y-2">
@@ -526,7 +856,7 @@ export default function GestaoRoadmap() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingPhase ? "Editar Fase" : "Nova Fase"}</DialogTitle>
-            <DialogDescription>Defina o agrupamento de meses em uma fase.</DialogDescription>
+            <DialogDescription>Defina o agrupamento de semanas em uma fase.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -557,11 +887,11 @@ export default function GestaoRoadmap() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Mês Início</Label>
+                <Label>Semana Início</Label>
                 <Input type="number" min={1} max={project.total_months} value={phaseForm.start_month} onChange={e => setPhaseForm({ ...phaseForm, start_month: Number(e.target.value) })} />
               </div>
               <div className="space-y-2">
-                <Label>Mês Fim</Label>
+                <Label>Semana Fim</Label>
                 <Input type="number" min={1} max={project.total_months} value={phaseForm.end_month} onChange={e => setPhaseForm({ ...phaseForm, end_month: Number(e.target.value) })} />
               </div>
             </div>

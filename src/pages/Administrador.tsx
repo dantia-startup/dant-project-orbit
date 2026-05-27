@@ -113,7 +113,11 @@ export default function Administrador() {
   async function handleCreateOrg() {
     if (!orgName.trim()) return;
     setLoading(true);
-    const { error } = await supabase.from("organizations").insert({ name: orgName.trim() });
+    const { data, error } = await supabase
+      .from("organizations")
+      .insert({ name: orgName.trim() })
+      .select()
+      .single();
     setLoading(false);
     if (error) {
       toast.error("Erro ao criar organização: " + error.message);
@@ -121,13 +125,21 @@ export default function Administrador() {
       toast.success("Organização criada com sucesso!");
       setOrgName("");
       setOrgDialogOpen(false);
-      fetchOrganizations();
+      await fetchOrganizations();
+      if (data?.id) {
+        setNewUser((current) => ({ ...current, organization_id: data.id }));
+        setUserDialogOpen(true);
+      }
     }
   }
 
   async function handleCreateUser() {
-    if (!newUser.email || !newUser.password || !newUser.full_name) {
-      toast.error("Preencha todos os campos obrigatórios.");
+    if (!newUser.email || !newUser.password || !newUser.full_name || !newUser.organization_id) {
+      toast.error("Preencha nome, e-mail, senha e organização.");
+      return;
+    }
+    if (newUser.password.length < 6) {
+      toast.error("A senha deve ter no mínimo 6 caracteres.");
       return;
     }
     setLoading(true);
@@ -222,6 +234,17 @@ export default function Administrador() {
     return organizations.find((o) => o.id === orgId)?.name || "—";
   }
 
+  function openCreateUserForOrg(organizationId?: string) {
+    setNewUser({
+      email: "",
+      password: "",
+      full_name: "",
+      organization_id: organizationId || "",
+      role: "user",
+    });
+    setUserDialogOpen(true);
+  }
+
   return (
     <div className="space-y-8">
       {/* Organizations Section */}
@@ -270,12 +293,13 @@ export default function Administrador() {
                 <TableHead>Nome</TableHead>
                 <TableHead className="w-[300px]">ID</TableHead>
                 <TableHead className="w-[180px]">Criado em</TableHead>
+                <TableHead className="w-[160px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {organizations.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                     Nenhuma organização cadastrada.
                   </TableCell>
                 </TableRow>
@@ -286,6 +310,17 @@ export default function Administrador() {
                     <TableCell className="font-mono text-xs text-muted-foreground">{org.id}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {new Date(org.created_at).toLocaleDateString("pt-BR")}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => openCreateUserForOrg(org.id)}
+                      >
+                        <UserPlus className="h-3.5 w-3.5" />
+                        Novo usuário
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -304,7 +339,7 @@ export default function Administrador() {
           </div>
           <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" className="gap-1.5">
+              <Button size="sm" className="gap-1.5" onClick={() => openCreateUserForOrg()}>
                 <Plus className="h-4 w-4" />
                 Novo Usuário
               </Button>
@@ -341,7 +376,7 @@ export default function Administrador() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Organização</Label>
+                  <Label>Organização *</Label>
                   <Select
                     value={newUser.organization_id}
                     onValueChange={(v) => setNewUser({ ...newUser, organization_id: v })}
@@ -376,7 +411,7 @@ export default function Administrador() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setUserDialogOpen(false)}>Cancelar</Button>
-                <Button onClick={handleCreateUser} disabled={loading}>
+                <Button onClick={handleCreateUser} disabled={loading || !newUser.organization_id}>
                   {loading ? "Criando..." : "Criar Usuário"}
                 </Button>
               </DialogFooter>

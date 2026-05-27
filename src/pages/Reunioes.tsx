@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { ProjectSwitcher } from "@/components/ProjectSwitcher";
+import { useProjectSelection } from "@/hooks/useProjectSelection";
 import {
   Calendar, Clock, Users, ChevronRight, ArrowLeft, FileText, ListChecks,
   MessageSquareText, Plus, Pencil, Trash2,
@@ -26,9 +28,9 @@ interface Meeting {
 }
 
 export default function Reunioes() {
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
+  const { projects, selectedProject, selectedProjectId, setSelectedProjectId, loadingProjects } = useProjectSelection();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [projectId, setProjectId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Meeting | null>(null);
 
@@ -50,29 +52,19 @@ export default function Reunioes() {
   const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("organization_id")
-      .eq("user_id", user?.id || "")
-      .maybeSingle();
+    if (loadingProjects) return;
+    if (!selectedProject) {
+      setMeetings([]);
+      setLoading(false);
+      return;
+    }
 
-    if (!profile?.organization_id) { setLoading(false); return; }
-
-    const { data: projects } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("organization_id", profile.organization_id)
-      .limit(1);
-
-    if (!projects || projects.length === 0) { setLoading(false); return; }
-
-    const pid = projects[0].id;
-    setProjectId(pid);
+    setLoading(true);
 
     const { data } = await supabase
       .from("meetings")
       .select("*")
-      .eq("project_id", pid)
+      .eq("project_id", selectedProject.id)
       .order("meeting_date", { ascending: false });
 
     setMeetings(
@@ -90,7 +82,7 @@ export default function Reunioes() {
       }))
     );
     setLoading(false);
-  }, [user?.id]);
+  }, [loadingProjects, selectedProject]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -119,11 +111,11 @@ export default function Reunioes() {
   async function handleSave() {
     if (!fTitle.trim()) { toast.error("Título é obrigatório"); return; }
     if (!fDate) { toast.error("Data é obrigatória"); return; }
-    if (!projectId) return;
+    if (!selectedProjectId) return;
 
     setSaving(true);
     const payload = {
-      project_id: projectId,
+      project_id: selectedProjectId,
       title: fTitle.trim(),
       meeting_date: fDate,
       duration: fDuration.trim(),
@@ -170,7 +162,7 @@ export default function Reunioes() {
     );
   }
 
-  if (!projectId) {
+  if (!selectedProjectId) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
         <p>Nenhum projeto encontrado para esta organização.</p>
@@ -185,12 +177,15 @@ export default function Reunioes() {
           <h1 className="text-xl font-bold text-foreground">Reuniões</h1>
           <p className="text-sm text-muted-foreground">Histórico de reuniões do projeto</p>
         </div>
+        <div className="flex items-center gap-3">
+          <ProjectSwitcher projects={projects} selectedProjectId={selectedProjectId} onChange={setSelectedProjectId} />
         {isAdmin && !selected && (
           <Button onClick={openCreate} size="sm" className="gap-1.5">
             <Plus className="h-4 w-4" />
             Nova Reunião
           </Button>
         )}
+        </div>
       </div>
 
       {selected ? (

@@ -402,7 +402,11 @@ export type Database = {
           client_name: string
           created_at: string
           id: string
+          local_path: string | null
           organization_id: string
+          project_key: string | null
+          repository_name: string | null
+          repository_url: string | null
           total_months: number
           updated_at: string
         }
@@ -410,7 +414,11 @@ export type Database = {
           client_name: string
           created_at?: string
           id?: string
+          local_path?: string | null
           organization_id: string
+          project_key?: string | null
+          repository_name?: string | null
+          repository_url?: string | null
           total_months?: number
           updated_at?: string
         }
@@ -418,7 +426,11 @@ export type Database = {
           client_name?: string
           created_at?: string
           id?: string
+          local_path?: string | null
           organization_id?: string
+          project_key?: string | null
+          repository_name?: string | null
+          repository_url?: string | null
           total_months?: number
           updated_at?: string
         }
