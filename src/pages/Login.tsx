@@ -103,7 +103,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-xs text-[hsl(var(--sidebar-muted-foreground))] mt-6">
-          © {new Date().getFullYear()} Dant.IA — Todos os direitos reservados.
+          © {new Date().getFullYear()} Dant.IA — Todos os direitos reservados
         </p>
       </div>
     </div>
