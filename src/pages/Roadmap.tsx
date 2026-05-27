@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { roadmapPhases as mockPhases, currentMonth as mockCurrentMonth } from "@/data/mockData";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
@@ -129,16 +129,10 @@ export default function Roadmap() {
 
   // Cesgranrio stays immutable, but the project selector must remain available.
   if (useMock) {
-    return (
-      <>
-        {projects.length > 0 && (
-          <div className="max-w-6xl mx-auto flex justify-end">
-            <ProjectSwitcher projects={projects} selectedProjectId={selectedProjectId} onChange={setSelectedProjectId} />
-          </div>
-        )}
-        <MockRoadmap />
-      </>
-    );
+    const switcher = projects.length > 0 ? (
+      <ProjectSwitcher projects={projects} selectedProjectId={selectedProjectId} onChange={setSelectedProjectId} />
+    ) : null;
+    return <MockRoadmap switcher={switcher} />;
   }
 
   const cesgranrioMode = isCesgranrioProject(project?.client_name);
@@ -260,7 +254,7 @@ export default function Roadmap() {
 }
 
 // Original mock-based roadmap as fallback
-function MockRoadmap() {
+function MockRoadmap({ switcher }: { switcher?: ReactNode }) {
   const monthLabels = [
     { num: 1, label: "Quick Win" }, { num: 2, label: "Quick Win" },
     { num: 3, label: "Coleta" }, { num: 4, label: "Análise" },
@@ -287,6 +281,7 @@ function MockRoadmap() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
+      {switcher && <div className="flex justify-end">{switcher}</div>}
       <div className="bg-gradient-to-r from-[hsl(228,55%,12%)] to-[hsl(225,95%,30%)] rounded-xl p-8 text-primary-foreground">
         <h1 className="text-2xl font-bold">Roadmap <span className="text-accent">Dante Decision Engine</span>™</h1>
         <p className="text-lg font-medium mt-1 text-primary-foreground/80">12 Meses de Implementação</p>
