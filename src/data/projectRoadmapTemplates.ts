@@ -36,8 +36,8 @@ export const projectRoadmapTemplates: RoadmapTemplate[] = [
   {
     projectKey: "dantia-landing",
     title: "dantia-landing",
-    completedThrough: 2,
-    currentWeek: 3,
+    completedThrough: 3,
+    currentWeek: 4,
     phases: [
       { name: "Quick Wins & Alinhamento", description: "Gerar valor visível rápido: deixar a vitrine da DantIA pronta para vender e receber contatos.", color: "green", startMonth: 1, endMonth: 1 },
       { name: "Construção da Base", description: "Arrumar formulário, LGPD e avisos para a equipe comercial responder rápido.", color: "blue", startMonth: 2, endMonth: 2 },
@@ -65,17 +65,17 @@ export const projectRoadmapTemplates: RoadmapTemplate[] = [
     months: [
       { month: 1, label: "Quick Win", title: "Regra simples para construir bem", items: ["Organizar os princípios que todos os agentes devem seguir.", "Criar modelos de plano, tarefa, teste e auditoria.", "Explicar o Forge para humano, desenvolvedor e agente."], highlights: ["Quick Win 1: todo projeto passa a nascer com o mesmo padrão de qualidade."] },
       { month: 2, label: "Quick Win", title: "Método instalado nos projetos reais", items: ["Validar uso em Sapiro, Happiness e DantIA Social.", "Remover pontos confusos de instalação.", "Criar exemplos que a equipe consegue repetir."], highlights: ["Quick Win 2: a fábrica deixa de depender de memória individual e passa a seguir método."] },
-      { month: 3, label: "Qualidade", title: "Agentes trabalham com portões", items: ["Refinar comandos de diagnóstico, plano, tarefas e promoção.", "Garantir critério de pronto antes de aceitar entrega.", "Evitar que uma demonstração vire produção sem teste."], highlights: ["Quick Win 3: menos retrabalho e menos risco nas entregas feitas por agentes."] },
-      { month: 4, label: "Auditoria", title: "Revisão externa e rastreabilidade", items: ["Rodar auditoria mensal com reviewer.", "Ajustar hooks que bloqueiam riscos.", "Registrar decisões importantes em ADRs."], highlights: ["Quick Win 4: a CEO enxerga risco antes de virar problema."] },
-      { month: 5, label: "Escala", title: "Forge vira acelerador do portfólio", items: ["Padronizar como agentes constroem módulos.", "Medir ganho de velocidade com subagentes em paralelo.", "Transformar aprendizados em playbooks reutilizáveis."], highlights: ["Quick Win 5: um aprendizado de projeto passa a ajudar todos os outros."] },
-      { month: 6, label: "Go-Live", title: "Acompanhamento remoto e memória", items: ["Conectar operação remota via Hermes e GitHub Actions.", "Salvar aprendizados por projeto.", "Preparar relatório executivo do valor do Forge."], highlights: ["Quick Win 6: o Forge vira o sistema operacional da fábrica DantIA."] },
+      { month: 3, label: "Qualidade", title: "Qualidade com testes e CI primeiro", items: ["Exigir testes automáticos (TDD) antes de aceitar qualquer entrega.", "Montar a esteira de CI/CD que barra código sem teste.", "Garantir critério de pronto para a demo não virar produção sem validação."], highlights: ["Quick Win 3: menos retrabalho e menos risco nas entregas feitas por agentes."] },
+      { month: 4, label: "Consumo", title: "Forge fácil de consumir e rastreável", items: ["Reduzir o atrito para outros projetos adotarem o Forge (modo consumidor).", "Adicionar skills de ciclo de desenvolvimento sem quebrar o que já existe.", "Registrar decisões importantes em ADRs para rastreabilidade."], highlights: ["Quick Win 4: outros projetos passam a usar o Forge com menos atrito e tudo registrado."] },
+      { month: 5, label: "Operação", title: "Inteligência operacional: Hermes e métricas", items: ["Conectar o Hermes para operar e acompanhar os agentes remotamente.", "Medir custo, qualidade e uso por meio de analytics (WireLog).", "Transformar aprendizados em padrões reutilizáveis pela fábrica."], highlights: ["Quick Win 5: a fábrica passa a ser acompanhada por métricas, não por achismo."] },
+      { month: 6, label: "Go-Live", title: "Go-Live com validação e auditoria", items: ["Ativar o modo piloto (PILOT) com pré-validação sintética antes da produção.", "Rodar a primeira auditoria mensal real com o reviewer.", "Salvar aprendizados por projeto e entregar o relatório executivo do valor do Forge."], highlights: ["Quick Win 6: o Forge vira o sistema operacional da fábrica DantIA."] },
     ],
   },
   {
     projectKey: "sapiro",
     title: "Sapiro",
-    completedThrough: 2,
-    currentWeek: 3,
+    completedThrough: 3,
+    currentWeek: 4,
     phases: [
       { name: "Quick Wins & Alinhamento", description: "Gerar valor visível rápido: deixar o Sapiro com regras, ambiente seguro e medição antes de aprender com clientes.", color: "green", startMonth: 1, endMonth: 2 },
       { name: "Construção da Base", description: "Trocar a fila antiga pelo fluxo novo, guardar feedback do cliente e colocar esse aprendizado no contexto dos agentes.", color: "blue", startMonth: 3, endMonth: 5 },
@@ -85,7 +85,7 @@ export const projectRoadmapTemplates: RoadmapTemplate[] = [
     months: [
       { month: 1, label: "Quick Win", title: "Constituição dos agentes aprovada", items: ["Registrar no CLAUDE.md as regras que todo agente deve seguir.", "Conectar LangSmith para enxergar o que o agente fez.", "Definir que aprendizado só vale quando tiver sinal confiável."], highlights: ["Quick Win 1: a CEO sabe qual é a regra do jogo dos agentes."] },
       { month: 2, label: "Quick Win", title: "Staging isolado para aprender sem risco", items: ["Separar Postgres, Redis, Vertex e LangSmith do ambiente principal.", "Garantir que teste de aprendizado não mexe em cliente real.", "Deixar trilha clara de onde cada experimento rodou."], highlights: ["Quick Win 2: o Sapiro pode testar inteligência nova sem arriscar produção."] },
-      { month: 3, label: "LangGraph", title: "LangGraph ativado com controle", items: ["Ligar o fluxo novo no monthly-analysis.", "Ativar primeiro para poucos clientes.", "Comparar erro, tempo e custo contra a fila antiga."], highlights: ["Quick Win 3: análise mensal passa a ter fluxo mais rastreável sem troca brusca em produção."] },
+      { month: 3, label: "LangGraph", title: "LangGraph validado em staging", items: ["Ligar o fluxo novo (ADR-011) no monthly-analysis.", "Validar primeiro em staging isolado, sem afetar cliente real.", "Comparar erro, tempo e custo contra a fila antiga."], highlights: ["Quick Win 3: análise mensal passa a ter fluxo mais rastreável sem troca brusca em produção."] },
       { month: 4, label: "Action Plan", title: "Plano de ação vira acompanhamento", items: ["Criar status simples: criado, aceito, em execução, concluído.", "Guardar histórico de mudanças do plano.", "Transformar aprovação do cliente em sinal para o agente."], highlights: ["Quick Win 4: recomendação deixa de ser texto solto e vira acompanhamento de negócio."] },
       { month: 5, label: "Memória", title: "Memória por cliente no contexto", items: ["Criar TenantMemoryItem para aprendizados úteis.", "Buscar feedback aprovado antes da resposta.", "Injetar memória L1 sem misturar dados de empresas."], highlights: ["Quick Win 5: o Sapiro começa a lembrar preferências do cliente com segurança."] },
       { month: 6, label: "SelfHarness", title: "Primeiro ciclo fechado de aprendizado", items: ["Criar worker que lê correções de classificação.", "Transformar correctedCategory em memória útil.", "Testar se a próxima análise melhora depois da correção."], highlights: ["Quick Win 6: quando o cliente corrige uma categoria, o Sapiro aprende para a próxima vez."] },
@@ -98,8 +98,8 @@ export const projectRoadmapTemplates: RoadmapTemplate[] = [
   {
     projectKey: "happiness",
     title: "Happiness",
-    completedThrough: 7,
-    currentWeek: 8,
+    completedThrough: 6,
+    currentWeek: 7,
     phases: [
       { name: "Quick Wins & Alinhamento", description: "Gerar valor visível rápido: trocar rotinas básicas do sistema antigo sem parar a operação.", color: "green", startMonth: 1, endMonth: 2 },
       { name: "Construção da Base", description: "Organizar leads, atendimento, agenda e matrícula para vender melhor.", color: "blue", startMonth: 3, endMonth: 5 },
@@ -113,7 +113,7 @@ export const projectRoadmapTemplates: RoadmapTemplate[] = [
       { month: 4, label: "Agenda", title: "Tele-pesquisa e agenda", items: ["Controlar operador, turno e produtividade.", "Bloquear telefones que não podem receber ligação.", "Preparar lista para tele-projeto."], highlights: ["Quick Win 4: ligações ficam organizadas e mensuráveis."] },
       { month: 5, label: "Matrícula", title: "Recepção, OEDU e matrícula", items: ["Agendar e receber visitas.", "Registrar atendimento do orientador.", "Emitir contrato e fechamento comercial."], highlights: ["Quick Win 5: venda roda de ponta a ponta no Happiness."] },
       { month: 6, label: "Receber", title: "Contas a receber", items: ["Controlar contratos e parcelas.", "Dar baixa em dinheiro, boleto, cartão e cheque.", "Gerar relatório de faturamento."], highlights: ["Quick Win 6: a escola sabe o que tem para receber."] },
-      { month: 7, label: "Caixa", title: "Contas a pagar e caixa", items: ["Lançar fornecedores e despesas.", "Transferir valores entre contas.", "Gerar extrato e fechamento diário."], highlights: ["Quick Win 7: a gestão fecha o caixa com menos esforço manual."] },
+      { month: 7, label: "Pagamentos", title: "Gateway de pagamentos (Asaas)", items: ["Integrar boleto, PIX e cartão pelo gateway Asaas.", "Conciliar os recebimentos automaticamente com o financeiro.", "Reduzir o lançamento manual de caixa e a baixa de parcelas."], highlights: ["Quick Win 7: pagamentos entram e baixam sozinhos, com menos esforço manual."] },
       { month: 8, label: "Aluno", title: "Administrativo do aluno", items: ["Fazer trancamento, cancelamento e conclusão.", "Calcular multa e regras de retorno.", "Criar relatórios de cobrança e ranking."], highlights: ["Quick Win 8: decisões sobre aluno e contrato ficam rastreáveis."] },
       { month: 9, label: "Escola", title: "Pedagógico, RH e parâmetros", items: ["Mapear faltas, reposições, turmas e pautas.", "Cadastrar empresas, vagas e encaminhamentos.", "Centralizar regras configuráveis da escola."], highlights: ["Quick Win 9: a operação inteira começa a caber no mesmo sistema."] },
       { month: 10, label: "Go-Live", title: "Piloto com unidade real", items: ["Rodar aceite com usuários reais.", "Corrigir diferenças contra o CAPSYSTEM.", "Preparar módulos para virarem canônicos."], highlights: ["Quick Win 10: caminho claro para substituir o sistema legado."] },
@@ -122,8 +122,8 @@ export const projectRoadmapTemplates: RoadmapTemplate[] = [
   {
     projectKey: "dantia-forja-comercial",
     title: "dantia-forja-comercial",
-    completedThrough: 6,
-    currentWeek: 7,
+    completedThrough: 5,
+    currentWeek: 6,
     phases: [
       { name: "Quick Wins & Alinhamento", description: "Gerar valor visível rápido: decidir regras, consentimento e material permitido antes de ouvir vendas.", color: "green", startMonth: 1, endMonth: 2 },
       { name: "Construção da Base", description: "Fazer a IA ouvir a conversa, entender gatilhos e sugerir o próximo passo.", color: "blue", startMonth: 3, endMonth: 5 },
@@ -144,8 +144,8 @@ export const projectRoadmapTemplates: RoadmapTemplate[] = [
   {
     projectKey: "dantia_social",
     title: "dantia_social",
-    completedThrough: 4,
-    currentWeek: 5,
+    completedThrough: 3,
+    currentWeek: 4,
     phases: [
       { name: "Quick Wins & Alinhamento", description: "Gerar valor visível rápido: organizar marca, tom e base comum dos agentes.", color: "green", startMonth: 1, endMonth: 1 },
       { name: "Construção da Base", description: "Colocar social, copy e design para produzir com padrão de marca.", color: "blue", startMonth: 2, endMonth: 4 },
@@ -159,6 +159,26 @@ export const projectRoadmapTemplates: RoadmapTemplate[] = [
       { month: 4, label: "Design", title: "Designer-agent", items: ["Criar design de carrossel completo.", "Validar aderência à marca.", "Levar os 3 agentes P0 para SHADOW."], highlights: ["Quick Win 4: fábrica de conteúdo com três agentes principais."] },
       { month: 5, label: "Aquisição", title: "Tráfego e vídeo", items: ["Criar campanha Meta com criativo e público.", "Cortar vídeos longos em vídeos curtos.", "Manter Veo 3 premium fora até caber no custo."], highlights: ["Quick Win 5: marketing passa a testar aquisição com custo controlado."] },
       { month: 6, label: "Escala", title: "Estratégia, DM e auditoria", items: ["Gerar diagnóstico de funil pelo estrategista.", "Testar DM apenas interno por LGPD.", "Rodar auditoria mensal e medir ROI."], highlights: ["Quick Win 6: esteira de marketing agentic pronta para escala."] },
+    ],
+  },
+  {
+    projectKey: "multi-agentes",
+    title: "Multi-Agentes",
+    completedThrough: 2,
+    currentWeek: 3,
+    phases: [
+      { name: "Quick Wins & Alinhamento", description: "Gerar valor visível rápido: construir a Fábrica que cria agentes a partir de uma receita, com governança e segurança automáticas.", color: "green", startMonth: 1, endMonth: 2 },
+      { name: "Construção da Base", description: "Colocar as guildas de governança, engenharia, qualidade e segurança para a Fábrica produzir agentes sozinha, com portões de aprovação.", color: "blue", startMonth: 3, endMonth: 4 },
+      { name: "Inteligência Avançada", description: "Fabricar a frota de 150+ agentes em modo sombra, povoar o Company Brain e ligar o painel do operador.", color: "blue", startMonth: 5, endMonth: 5 },
+      { name: "Validação & Escala", description: "Vender o diagnóstico ao primeiro cliente real, promover agentes por portão e medir receita, custo e qualidade.", color: "amber", startMonth: 6, endMonth: 6 },
+    ],
+    months: [
+      { month: 1, label: "Quick Win", title: "Plataforma que fabrica agentes", items: ["Definir a constituição que todo agente deve obedecer (regras auditáveis).", "Criar o Company Brain: tudo que um agente faz vira registro rastreável.", "Ligar o motor que cria, testa e promove agentes a partir de uma receita."], highlights: ["Quick Win 1: um agente passa por todo o fluxo (criar → agir → aprovar → registrar) em modo sombra."] },
+      { month: 2, label: "Quick Win", title: "Venda e ativação ponta a ponta", items: ["Diagnosticar a empresa do cliente e ligar o time de agentes na conta dele.", "Garantir que cada cliente fica isolado (multi-cliente seguro).", "Rodar 5 agentes de gestão (caixa, triagem, operações, atendimento, painel do dono)."], highlights: ["Quick Win 2: 16 demonstrações completas de venda → ativação rodando ponta a ponta."] },
+      { month: 3, label: "Fábrica", title: "Agentes que fazem agentes", items: ["Montar as guildas de governança, engenharia, qualidade e segurança.", "Escrever as receitas (specs) e os casos de teste dos agentes de negócio.", "Deixar a Fábrica materializar agentes em paralelo, sem humano escrever código."], highlights: ["Quick Win 3: a Fábrica recebe uma receita nova e entrega um agente em modo sombra sozinha."] },
+      { month: 4, label: "Frota", title: "150+ agentes em modo sombra", items: ["Instanciar a frota completa de agentes, cada um com testes próprios.", "Todo agente nasce observando: sugere, mas ainda não age nem cobra.", "Garantir trilha de auditoria e supervisor-raiz roteando as guildas."], highlights: ["Quick Win 4: frota de 150+ agentes de pé, todos rastreáveis e em modo seguro."] },
+      { month: 5, label: "Brain", title: "Inteligência e painel do operador", items: ["Rodar em sombra os agentes do caminho-crítico e medir a taxa de acerto.", "Povoar o Company Brain para a empresa ficar consultável.", "Ligar o Operator Console com receita, custo e qualidade ao vivo."], highlights: ["Quick Win 5: o dono enxerga, num só painel, o que cada agente faria e quanto custaria."] },
+      { month: 6, label: "Go-Live", title: "Primeiro cliente e promoção por portão", items: ["Vender o diagnóstico pago para o primeiro fundador-bombeiro em SP.", "Promover por portão os agentes que provam qualidade (piloto → assistido → autônomo).", "Travar a margem dos agentes cobráveis e agendar a auditoria mensal."], highlights: ["Quick Win 6: produto no ar operado pela frota, com o primeiro sinal real de valor e de preço."] },
     ],
   },
 ];

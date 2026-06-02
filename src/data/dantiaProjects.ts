@@ -35,5 +35,11 @@ export const dantiaRepositoryProjects = [
     repository_name: "DantIA_Social",
     local_path: "C:\\Users\\Rafael\\Projetos\\DantIA_Social",
   },
+  {
+    project_key: "multi-agentes",
+    client_name: "Multi-Agentes",
+    repository_name: "Multi-Agentes",
+    local_path: "C:\\Users\\Rafael\\Projetos\\Multi-Agentes",
+  },
 ] as const;
 
